@@ -100,7 +100,10 @@ extension UInt32 {
 extension Float {
     init?(_ bytes: [UInt8]) {
         if bytes.count < 4 { return nil }
-        self = bytes.withUnsafeBytes {
+        // SMC returns values in big-endian byte order.
+        // Swap to host (little-endian on both Intel and Apple Silicon).
+        let swapped: [UInt8] = [bytes[3], bytes[2], bytes[1], bytes[0]]
+        self = swapped.withUnsafeBytes {
             return $0.load(fromByteOffset: 0, as: Self.self)
         }
     }
@@ -115,6 +118,7 @@ private let kIOMainPortDefaultCompat: mach_port_t = 0
 public class SMC {
     public static let shared = SMC()
     private var conn: io_connect_t = 0
+    private var keyInfoCache: [UInt32: SMCKeyData_t.keyInfo_t] = [:]
     
     public init() {
         var result: kern_return_t
@@ -147,6 +151,7 @@ public class SMC {
     }
     
     public func getValue(_ key: String) -> Double? {
+        guard conn != 0 else { return nil }
         var val = SMCVal_t(key)
         let result = read(&val)
         guard result == kIOReturnSuccess else {
@@ -185,19 +190,27 @@ public class SMC {
         var input = SMCKeyData_t()
         var output = SMCKeyData_t()
         
-        input.key = FourCharCode(fromString: value.pointee.key)
-        input.data8 = SMCKeys.readKeyInfo.rawValue
-        
-        result = call(SMCKeys.kernelIndex.rawValue, input: &input, output: &output)
-        if result != kIOReturnSuccess {
-            return result
+        let fourCC = FourCharCode(fromString: value.pointee.key)
+        input.key = fourCC
+
+        // Use cached keyInfo when available to halve IOKit round-trips.
+        if let cached = keyInfoCache[fourCC] {
+            value.pointee.dataSize = UInt32(cached.dataSize)
+            value.pointee.dataType = cached.dataType.toString()
+            input.keyInfo.dataSize = cached.dataSize
+        } else {
+            input.data8 = SMCKeys.readKeyInfo.rawValue
+            result = call(SMCKeys.kernelIndex.rawValue, input: &input, output: &output)
+            if result != kIOReturnSuccess {
+                return result
+            }
+            keyInfoCache[fourCC] = output.keyInfo
+            value.pointee.dataSize = UInt32(output.keyInfo.dataSize)
+            value.pointee.dataType = output.keyInfo.dataType.toString()
+            input.keyInfo.dataSize = output.keyInfo.dataSize
         }
-        
-        value.pointee.dataSize = UInt32(output.keyInfo.dataSize)
-        value.pointee.dataType = output.keyInfo.dataType.toString()
-        input.keyInfo.dataSize = output.keyInfo.dataSize
+
         input.data8 = SMCKeys.readBytes.rawValue
-        
         result = call(SMCKeys.kernelIndex.rawValue, input: &input, output: &output)
         if result != kIOReturnSuccess {
             return result
