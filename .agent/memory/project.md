@@ -35,6 +35,8 @@
 - [x] Fork setup & build working
 - [x] AGENTS.md + .agent folder structure
 - [x] VS Code configurations (tasks, launch, settings)
+- [x] Critical bugs fix: timer double-fire, CPU overflow, SMC guard, interval persist
+- [x] Optimizations: SMC keyInfo cache, draw() cache, Float endian fix, codesign cleanup
 
 ### 🚧 In Progress
 - [ ] Custom color thresholds (warn/critical levels)
@@ -54,6 +56,10 @@
 | SDK version mismatch | ✅ Fixed | Hardcoded SDK path in build.sh |
 | Network: ignores VPN/utun | Open | By design — chỉ "en" interfaces |
 | Top Processes: subprocess overhead | Open | Acceptable — only on menu open |
+| Timer fired 2x per interval | ✅ Fixed | Timer now uses unscheduled Timer() + RunLoop.add(.common) |
+| CPU delta integer overflow | ✅ Fixed | Cast Int32→Int64 before subtraction, clamp to 0 |
+| SMC conn=0 wasted syscalls | ✅ Fixed | guard conn != 0 in getValue() |
+| updateInterval not persisted | ✅ Fixed | Now stored in UserDefaults |
 
 ---
 

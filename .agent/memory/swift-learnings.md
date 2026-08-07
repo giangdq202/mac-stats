@@ -39,6 +39,36 @@
 
 ---
 
-## Session 2 — [Date]: [Feature Name]
+## Session 2 — 2026-08-07: Critical Bugs & Optimizations
+
+### Concepts Learned
+
+**Timer RunLoop Modes**
+- `scheduledTimer` = tạo Timer + add vào RunLoop `.default` tự động
+- `.common` mode bao gồm `.default` + `.eventTracking` → timer fire cả khi user đang drag
+- Muốn dùng `.common`: tạo timer bằng `Timer(timeInterval:...)` rồi `RunLoop.current.add(t, forMode: .common)`
+- KHÔNG dùng `scheduledTimer` + `add(.common)` → fire 2 lần!
+
+**Integer Overflow Safety**
+- `Int32` trừ nhau khi counter wrap → kết quả âm → cast `UInt64` → rác
+- Giải pháp: widen sang `Int64` trước khi trừ, rồi `max(0, delta)`
+- Tương tự cho network: `UInt32` overflow khi vượt 4GB → detect wrap-around
+
+**SMC / IOKit**
+- `IOConnectCallStructMethod` là syscall vào kernel — nặng, cần minimize
+- `keyInfo` (dataSize, dataType) không đổi cho cùng key → cache được
+- SMC trả bytes big-endian, host là little-endian → phải swap
+
+**UserDefaults Computed Property**
+- Dùng computed property `get/set` thay vì stored property → auto-persist
+- `UserDefaults.standard.double(forKey:)` trả 0.0 nếu key chưa có → cần guard
+
+**NSAttributedString Cache**
+- So sánh raw `Double` nhanh hơn format String rồi compare String
+- Chỉ gọi `String(format:)` khi value thực sự thay đổi → giảm allocation
+
+---
+
+## Session 3 — [Date]: [Feature Name]
 
 *[AI sẽ điền vào đây sau mỗi commit]*
