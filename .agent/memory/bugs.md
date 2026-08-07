@@ -74,10 +74,10 @@ COMMON_FLAGS=(-Osize -wmo -module-name MacStats -sdk "$SDK_PATH" ...)
 
 ---
 
-## 2026-08-07: Float Byte-Order in SMC
+## 2026-08-07: ~~Float Byte-Order in SMC~~ (REVERTED — Đây là fix sai)
 
-**Triệu chứng**: Nhiệt độ sai cho sensors dùng type `"flt "` (IEEE 754 float)
-**Nguyên nhân**: SMC trả bytes big-endian, nhưng `load(as: Float.self)` đọc host-endian (little-endian trên cả Intel và Apple Silicon).
-**Fix**: Swap bytes [3,2,1,0] trước khi load.
-**File**: `SMC.swift` dòng 100-107
-**Lesson**: Hardware interfaces thường dùng big-endian. Luôn xác nhận byte order trước khi dùng `load(as:)`.
+**Triệu chứng ban đầu**: Giả định rằng SMC trả bytes big-endian cho `"flt "` type
+**Fix ban đầu**: Swap bytes [3,2,1,0] trước khi `load(as: Float.self)`
+**Hậu quả**: Temperature hiện `--` vì swap làm giá trị rác → rơi ngoài range 15-110°C → bị lọc bỏ
+**Root cause thực tế**: SMC trả `flt ` type theo **host byte order** (little-endian), KHÔNG phải big-endian. Code gốc đã đúng.
+**Lesson**: KHÔNG giả định byte order mà chưa test thực tế. `sp78` dùng big-endian (manual parse), nhưng `flt ` dùng host-endian. Mỗi data type có convention riêng.
