@@ -52,7 +52,7 @@ fi
 
 # 4. Sign binary locally
 echo "[4/4] Signing app bundle locally..."
-codesign --force --deep --sign - "${APP_BUNDLE}"
+codesign --force --sign - "${APP_BUNDLE}"
 
 echo "=== Build Complete! ==="
 echo "App created at: $(pwd)/${APP_BUNDLE}"
