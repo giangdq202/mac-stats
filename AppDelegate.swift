@@ -7,15 +7,22 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     
     private let statsEngine = StatsEngine()
     private var timer: Timer?
-    private var updateInterval: TimeInterval = 2.0
     
     private var currentCpuStats = CPUStats()
     private var currentMemStats = MemoryStats()
     private var currentNetStats = NetworkStats()
 
-    // Periodic heap trim counter (every ~30s at 2s interval = 15 ticks)
-    private var ticksSinceLastTrim: Int = 0
-    private var trimIntervalTicks: Int = 15
+    // MARK: - Persisted Settings Helpers
+
+    private var updateInterval: TimeInterval {
+        get {
+            let val = UserDefaults.standard.double(forKey: "updateInterval")
+            return val > 0 ? val : 2.0
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "updateInterval")
+        }
+    }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         // Prevent app from appearing in Dock or Command-Tab switcher
@@ -24,14 +31,9 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         startTimer()
         updateStats()
-        
-        // Purge transient startup heap back to OS after frameworks finish init
-        perform(#selector(postStartupTrim), with: nil, afterDelay: 1.0)
     }
 
-    @objc private func postStartupTrim() {
-        malloc_zone_pressure_relief(nil, 0)
-    }
+
     
     private func setupStatusItem() {
         let statusBar = NSStatusBar.system
@@ -55,14 +57,15 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] _ in
+        let interval = updateInterval
+        let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             autoreleasepool {
                 self?.updateStats()
             }
         }
-        // Allow system to coalesce timer fires for power savings
-        timer?.tolerance = updateInterval * 0.25
-        RunLoop.current.add(timer!, forMode: .common)
+        t.tolerance = interval * 0.25
+        RunLoop.current.add(t, forMode: .common)
+        timer = t
     }
     
     private func updateStats() {
@@ -79,13 +82,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             uploadBytesPerSec: currentNetStats.uploadBytesPerSec,
             downloadBytesPerSec: currentNetStats.downloadBytesPerSec
         )
-
-        // Periodically trim malloc free-lists to reduce fragmentation
-        ticksSinceLastTrim += 1
-        if ticksSinceLastTrim >= trimIntervalTicks {
-            ticksSinceLastTrim = 0
-            malloc_zone_pressure_relief(nil, 0)
-        }
     }
     
     private func showMenu() {
@@ -315,7 +311,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func changeInterval(_ sender: NSMenuItem) {
         if let sec = sender.representedObject as? TimeInterval {
             updateInterval = sec
-            trimIntervalTicks = max(1, Int(30.0 / sec))
             startTimer()
         }
     }
