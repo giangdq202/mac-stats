@@ -105,12 +105,13 @@ public class UnifiedStatsView: BaseStatsView {
     private var cachedTempLine: NSAttributedString?
     private var cachedTempUnitLine: NSAttributedString?
 
-    // Cached formatted display strings (used as cache invalidation keys)
-    private var lastUpKey: String = ""
-    private var lastDownKey: String = ""
-    private var lastCpuKey: String = ""
-    private var lastMemKey: String = ""
-    private var lastTempKey: String = ""
+    // Cached raw values used as cache invalidation keys (avoid String allocation)
+    private var lastUpBPS: Double = -1
+    private var lastDownBPS: Double = -1
+    private var lastCpuPct: Double = -1
+    private var lastMemGB: Double = -1
+    private var lastTempC: Double = -1
+    private var lastTempUnit: String = ""
 
     // Cached appearance state
     private var cachedIsDark: Bool? = nil
@@ -177,7 +178,7 @@ public class UnifiedStatsView: BaseStatsView {
         if appearanceChanged {
             cachedIsDark = isDark
             cachedUpLine = nil; cachedDownLine = nil; cachedCpuLine = nil; cachedMemLine = nil; cachedTempLine = nil; cachedTempUnitLine = nil
-            lastUpKey = ""; lastDownKey = ""; lastCpuKey = ""; lastMemKey = ""; lastTempKey = ""
+            lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastTempC = -1; lastTempUnit = ""
         }
 
         let textColor = isDark ? NSColor.white : NSColor.black
@@ -194,11 +195,10 @@ public class UnifiedStatsView: BaseStatsView {
         var currentX: CGFloat = 0.0
 
         if showNetwork {
-            // Upload — only rebuild attributed string if formatted display text changed
-            let (upVal, upUnit) = formatSpeed(_uploadBPS)
-            let upKey = upVal + upUnit
-            if cachedUpLine == nil || upKey != lastUpKey {
-                lastUpKey = upKey
+            // Upload — only rebuild attributed string if raw value changed
+            if cachedUpLine == nil || _uploadBPS != lastUpBPS {
+                lastUpBPS = _uploadBPS
+                let (upVal, upUnit) = formatSpeed(_uploadBPS)
                 let upColor = colorForNetworkSpeed(_uploadBPS, isDark: isDark, defaultColor: textColor)
                 cachedUpLine = buildLine(val: upVal, unit: upUnit, color: upColor, dimAlpha: dimAlpha,
                                          valFont: font, uFont: unitFont)
@@ -206,10 +206,9 @@ public class UnifiedStatsView: BaseStatsView {
             cachedUpLine!.draw(in: CGRect(x: currentX, y: line1Y, width: netW, height: lineH))
 
             // Download
-            let (downVal, downUnit) = formatSpeed(_downloadBPS)
-            let downKey = downVal + downUnit
-            if cachedDownLine == nil || downKey != lastDownKey {
-                lastDownKey = downKey
+            if cachedDownLine == nil || _downloadBPS != lastDownBPS {
+                lastDownBPS = _downloadBPS
+                let (downVal, downUnit) = formatSpeed(_downloadBPS)
                 let downColor = colorForNetworkSpeed(_downloadBPS, isDark: isDark, defaultColor: textColor)
                 cachedDownLine = buildLine(val: downVal, unit: downUnit, color: downColor, dimAlpha: dimAlpha,
                                            valFont: font, uFont: unitFont)
@@ -220,9 +219,9 @@ public class UnifiedStatsView: BaseStatsView {
         }
 
         // CPU
-        let cpuVal = String(format: "%.0f", _cpuPercent)
-        if cachedCpuLine == nil || cpuVal != lastCpuKey {
-            lastCpuKey = cpuVal
+        if cachedCpuLine == nil || _cpuPercent != lastCpuPct {
+            lastCpuPct = _cpuPercent
+            let cpuVal = String(format: "%.0f", _cpuPercent)
             let cpuColor = colorForUsage(_cpuPercent, isDark: isDark)
             cachedCpuLine = buildLine(val: cpuVal, unit: "%", color: cpuColor, dimAlpha: dimAlpha,
                                        valFont: font, uFont: cpuMemUnitFont)
@@ -230,9 +229,9 @@ public class UnifiedStatsView: BaseStatsView {
         cachedCpuLine!.draw(in: CGRect(x: currentX, y: line1Y, width: cpuMemW, height: lineH))
 
         // RAM
-        let memKey = String(format: "%.1f", _memGB)
-        if cachedMemLine == nil || memKey != lastMemKey {
-            lastMemKey = memKey
+        if cachedMemLine == nil || _memGB != lastMemGB {
+            lastMemGB = _memGB
+            let memKey = String(format: "%.1f", _memGB)
             let memColor = colorForUsage(_memPercent, isDark: isDark)
             cachedMemLine = buildLine(val: memKey, unit: "G", color: memColor, dimAlpha: dimAlpha,
                                        valFont: font, uFont: cpuMemUnitFont)
@@ -254,9 +253,9 @@ public class UnifiedStatsView: BaseStatsView {
                 tempVal = "--"
             }
             
-            let tempKey = tempVal + _tempUnit
-            if cachedTempLine == nil || tempKey != lastTempKey {
-                lastTempKey = tempKey
+            if cachedTempLine == nil || _cpuTemperature != lastTempC || _tempUnit != lastTempUnit {
+                lastTempC = _cpuTemperature
+                lastTempUnit = _tempUnit
                 let tempColor = _cpuTemperature > 0 ? colorForTemperature(_cpuTemperature, isDark: isDark) : textColor
                 
                 // Value line (Top, bigger font)
