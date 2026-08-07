@@ -18,7 +18,8 @@ echo "[1/4] Generating AppIcon.icns..."
 python3 generate_icon.py || echo "Warning: Icon generation failed, continuing..."
 
 SOURCES=(SMC.swift StatsEngine.swift StatusBarView.swift AppDelegate.swift main.swift)
-COMMON_FLAGS=(-Osize -wmo -module-name MacStats -Xlinker -dead_strip \
+SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
+COMMON_FLAGS=(-Osize -wmo -module-name MacStats -sdk "$SDK_PATH" -Xlinker -dead_strip \
     -framework AppKit -framework IOKit -framework Foundation)
 
 # 2. Compile a universal (arm64 + x86_64) Swift executable, pinning the
