@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch MacStats",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/MacStats.app/Contents/MacOS/MacStats",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build MacStats",
+            "console": "integratedTerminal"
+        }
+    ]
+}

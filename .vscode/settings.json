@@ -1,0 +1,10 @@
+{
+    "swift.path": "/usr/bin/swift",
+    "files.exclude": {
+        "**/.git": false,
+        "**/.DS_Store": true,
+        "**/*_arm64": true,
+        "**/*_x86_64": true
+    },
+    "editor.formatOnSave": true
+}
