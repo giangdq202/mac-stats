@@ -100,10 +100,7 @@ extension UInt32 {
 extension Float {
     init?(_ bytes: [UInt8]) {
         if bytes.count < 4 { return nil }
-        // SMC returns values in big-endian byte order.
-        // Swap to host (little-endian on both Intel and Apple Silicon).
-        let swapped: [UInt8] = [bytes[3], bytes[2], bytes[1], bytes[0]]
-        self = swapped.withUnsafeBytes {
+        self = bytes.withUnsafeBytes {
             return $0.load(fromByteOffset: 0, as: Self.self)
         }
     }
