@@ -18,7 +18,11 @@ echo "[1/4] Generating AppIcon.icns..."
 python3 generate_icon.py || echo "Warning: Icon generation failed, continuing..."
 
 SOURCES=(SMC.swift StatsEngine.swift StatusBarView.swift AppDelegate.swift main.swift)
-SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
+if [ -d "/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk" ]; then
+    SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
+else
+    SDK_PATH=$(xcrun --show-sdk-path)
+fi
 COMMON_FLAGS=(-Osize -wmo -module-name MeMo -sdk "$SDK_PATH" -Xlinker -dead_strip \
     -framework AppKit -framework IOKit -framework Foundation)
 
