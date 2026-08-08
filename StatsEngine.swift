@@ -301,20 +301,14 @@ public class StatsEngine {
         if prevNetTime > 0 {
             let dt = now - prevNetTime
             if dt > 0 {
-                // ifi_ibytes/ifi_obytes are UInt32 on some kernels; handle
-                // wrap-around when the 32-bit counter overflows past 4 GB.
-                let sentDelta: UInt64
-                let recvDelta: UInt64
-                if currentBytesSent >= prevNetBytesSent {
-                    sentDelta = currentBytesSent - prevNetBytesSent
-                } else {
-                    sentDelta = (UInt64(UInt32.max) + 1) - prevNetBytesSent + currentBytesSent
-                }
-                if currentBytesRecv >= prevNetBytesRecv {
-                    recvDelta = currentBytesRecv - prevNetBytesRecv
-                } else {
-                    recvDelta = (UInt64(UInt32.max) + 1) - prevNetBytesRecv + currentBytesRecv
-                }
+                // When the total drops (e.g. an interface disconnected and its
+                // counters reset), treat the delta as zero rather than assuming a
+                // UInt32 wrap — counters are summed across interfaces, so the old
+                // wrap formula doesn't apply. The next sample will be correct.
+                let sentDelta = currentBytesSent >= prevNetBytesSent
+                    ? currentBytesSent - prevNetBytesSent : 0
+                let recvDelta = currentBytesRecv >= prevNetBytesRecv
+                    ? currentBytesRecv - prevNetBytesRecv : 0
                 
                 stats.uploadBytesPerSec = Double(sentDelta) / dt
                 stats.downloadBytesPerSec = Double(recvDelta) / dt
