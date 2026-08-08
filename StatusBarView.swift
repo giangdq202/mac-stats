@@ -14,14 +14,14 @@ public class BaseStatsView: NSView {
 }
 
 // MARK: - Color Utilities
-private enum AlertLevel: Int {
+public enum AlertLevel: Int {
     case normal = 0
     case warning = 1
     case high = 2
     case critical = 3
 }
 
-private func discreteColor(level: AlertLevel, isDark: Bool) -> NSColor {
+public func discreteColor(level: AlertLevel, isDark: Bool) -> NSColor {
     switch level {
     case .normal: // Green
         return isDark ? NSColor(calibratedHue: 130.0/360.0, saturation: 0.40, brightness: 0.92, alpha: 1.0)
@@ -38,14 +38,14 @@ private func discreteColor(level: AlertLevel, isDark: Bool) -> NSColor {
     }
 }
 
-private func levelForValue(_ value: Double, warn: Double, high: Double, crit: Double) -> AlertLevel {
+public func levelForValue(_ value: Double, warn: Double, high: Double, crit: Double) -> AlertLevel {
     if value >= crit { return .critical }
     if value >= high { return .high }
     if value >= warn { return .warning }
     return .normal
 }
 
-private func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String) -> NSColor {
+public func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String) -> NSColor {
     let warn = UserDefaults.standard.object(forKey: "\(metricPrefix)WarnThreshold") as? Double ?? 60.0
     let high = UserDefaults.standard.object(forKey: "\(metricPrefix)HighThreshold") as? Double ?? 75.0
     let crit = UserDefaults.standard.object(forKey: "\(metricPrefix)CriticalThreshold") as? Double ?? 90.0
@@ -53,7 +53,7 @@ private func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String
     return discreteColor(level: level, isDark: isDark)
 }
 
-private func colorForTemperature(_ temp: Double, isDark: Bool) -> NSColor {
+public func colorForTemperature(_ temp: Double, isDark: Bool) -> NSColor {
     let warn = UserDefaults.standard.object(forKey: "tempWarnThreshold") as? Double ?? 55.0
     let high = UserDefaults.standard.object(forKey: "tempHighThreshold") as? Double ?? 70.0
     let crit = UserDefaults.standard.object(forKey: "tempCriticalThreshold") as? Double ?? 85.0
@@ -61,7 +61,7 @@ private func colorForTemperature(_ temp: Double, isDark: Bool) -> NSColor {
     return discreteColor(level: level, isDark: isDark)
 }
 
-private func colorForNetworkSpeed(_ bytesPerSec: Double, isDark: Bool, defaultColor: NSColor) -> NSColor {
+public func colorForNetworkSpeed(_ bytesPerSec: Double, isDark: Bool, defaultColor: NSColor) -> NSColor {
     guard bytesPerSec >= 1024.0 else { return defaultColor }
     let logKb = log10(bytesPerSec / 1024.0)
     let normalized = min(max(logKb / 4.5, 0.0), 1.0)
