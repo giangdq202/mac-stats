@@ -22,17 +22,12 @@ SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
 COMMON_FLAGS=(-Osize -wmo -module-name MeMo -sdk "$SDK_PATH" -Xlinker -dead_strip \
     -framework AppKit -framework IOKit -framework Foundation)
 
-# 2. Compile a universal (arm64 + x86_64) Swift executable, pinning the
+# 2. Compile an arm64 Swift executable, pinning the
 #    deployment target so it runs on macOS ${DEPLOYMENT_TARGET} and newer,
-#    on both Apple Silicon and Intel Macs.
-echo "[2/4] Compiling universal binary (arm64 + x86_64), min macOS ${DEPLOYMENT_TARGET}..."
+#    on Apple Silicon Macs.
+echo "[2/4] Compiling arm64 binary, min macOS ${DEPLOYMENT_TARGET}..."
 swiftc "${COMMON_FLAGS[@]}" -target "arm64-apple-macosx${DEPLOYMENT_TARGET}" \
-    "${SOURCES[@]}" -o "${APP_NAME}_arm64"
-swiftc "${COMMON_FLAGS[@]}" -target "x86_64-apple-macosx${DEPLOYMENT_TARGET}" \
-    "${SOURCES[@]}" -o "${APP_NAME}_x86_64"
-
-lipo -create "${APP_NAME}_arm64" "${APP_NAME}_x86_64" -output "${APP_NAME}_bin"
-rm -f "${APP_NAME}_arm64" "${APP_NAME}_x86_64"
+    "${SOURCES[@]}" -o "${APP_NAME}_bin"
 
 # Strip debug symbols and local symbols to minimize binary
 strip -x "${APP_NAME}_bin" || true

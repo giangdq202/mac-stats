@@ -177,6 +177,37 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }))
         menu.addItem(NSMenuItem.separator())
 
+        // --- Temperatures Section ---
+        if !self.currentCpuStats.tempClusters.isEmpty {
+            menu.addItem(Self.sectionHeader("Temperatures"))
+            for cluster in self.currentCpuStats.tempClusters {
+                let item = NSMenuItem(title: "\(cluster.name)    \(String(format: "%.0f°C", cluster.temperature))", action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                menu.addItem(item)
+                
+                customViews.append((item, { [weak self] width in
+                    guard let self = self else { return (NSView(), {}) }
+                    let t = cluster.temperature
+                    let displayTemp = (t > 0 && self.tempUnit == "F") ? t * 1.8 + 32.0 : t
+                    let valStr = t > 0 ? String(format: "%.0f°%@", displayTemp, self.tempUnit) : "--"
+                    
+                    let (view, updateBlock) = Self.tempClusterRow(name: cluster.name, valueText: valStr, tempVal: t, width: width)
+                    let updater = { [weak self, weak view] in
+                        guard let self = self, let view = view else { return }
+                        // Find this cluster's updated temperature
+                        let newT = self.currentCpuStats.tempClusters.first(where: { $0.name == cluster.name })?.temperature ?? 0.0
+                        let displayTNew = (newT > 0 && self.tempUnit == "F") ? newT * 1.8 + 32.0 : newT
+                        let newStr = newT > 0 ? String(format: "%.0f°%@", displayTNew, self.tempUnit) : "--"
+                        let isDark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                        let color = (newT > 0) ? colorForTemperature(newT, isDark: isDark) : .secondaryLabelColor
+                        updateBlock(newStr, color)
+                    }
+                    return (view, updater)
+                }))
+            }
+            menu.addItem(NSMenuItem.separator())
+        }
+
         // --- Top Processes Section ---
         // Fetched fresh on open; excludes system daemons and rolls helpers into their app.
         // Rows start as plain items so the menu can compute its natural width; below
@@ -562,6 +593,46 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         container.addSubview(nameLabel)
 
         return container
+    }
+
+    private static func tempClusterRow(name: String, valueText: String, tempVal: Double, width: CGFloat) -> (NSView, (String, NSColor) -> Void) {
+        let leftInset: CGFloat = 21
+        let rightInset: CGFloat = 21
+        let font = NSFont.menuFont(ofSize: 0)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 20))
+
+        let maxLabelWidth: CGFloat = 60
+        let valueLabel = NSTextField(labelWithString: valueText)
+        valueLabel.font = font
+        valueLabel.alignment = .right
+        valueLabel.frame = NSRect(x: width - rightInset - maxLabelWidth, y: 2, width: maxLabelWidth, height: 16)
+        valueLabel.autoresizingMask = [.minXMargin]
+        
+        let isDark = container.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        if tempVal > 0 {
+            valueLabel.textColor = colorForTemperature(tempVal, isDark: isDark)
+        } else {
+            valueLabel.textColor = .secondaryLabelColor
+        }
+        
+        container.addSubview(valueLabel)
+
+        let nameLabel = NSTextField(labelWithString: name)
+        nameLabel.font = font
+        nameLabel.textColor = .labelColor
+        nameLabel.lineBreakMode = .byTruncatingTail
+        nameLabel.maximumNumberOfLines = 1
+        nameLabel.frame = NSRect(x: leftInset, y: 2,
+                                 width: max(0, valueLabel.frame.minX - 8 - leftInset), height: 16)
+        nameLabel.autoresizingMask = [.width]
+        container.addSubview(nameLabel)
+
+        let updater: (String, NSColor) -> Void = { newStr, newColor in
+            valueLabel.stringValue = newStr
+            valueLabel.textColor = newColor
+        }
+        
+        return (container, updater)
     }
 
     private static func progressBarRow(label: String, percent: Double, valueText: String, prefix: String, width: CGFloat) -> (NSView, (Double, String, NSColor) -> Void) {
