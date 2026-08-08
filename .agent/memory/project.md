@@ -62,6 +62,8 @@
 - [x] **P6** — Deduplicate formatSpeed/formatNetworkSpeed → PR #13
 
 ### 🚧 In Progress
+- [x] Apple Silicon only app (arm64 build)
+- [x] Temperature grouped by clusters (P-Cores, E-Cores, GPU) in Dropdown
 - [ ] (Future) Notification alerts
 - [ ] (Future) History sparkline chart
 
