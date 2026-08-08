@@ -11,6 +11,8 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentCpuStats = CPUStats()
     private var currentMemStats = MemoryStats()
     private var currentNetStats = NetworkStats()
+    
+    private var activeMenuUpdaters: [() -> Void] = []
 
     // MARK: - Persisted Settings Helpers
 
@@ -82,18 +84,101 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             uploadBytesPerSec: currentNetStats.uploadBytesPerSec,
             downloadBytesPerSec: currentNetStats.downloadBytesPerSec
         )
+        
+        for updater in activeMenuUpdaters {
+            updater()
+        }
     }
     
     private func showMenu() {
         let menu = NSMenu()
-        // Manage item enabled-state ourselves so info rows stay legible (not greyed).
         menu.autoenablesItems = false
+
+        // --- About Header ---
+        let versionStr = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        let versionItem = NSMenuItem(title: "MeMo v\(versionStr)", action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        versionItem.attributedTitle = NSAttributedString(string: "MeMo v\(versionStr)", attributes: [
+            .foregroundColor: NSColor.tertiaryLabelColor,
+            .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        ])
+        menu.addItem(versionItem)
+        menu.addItem(NSMenuItem.separator())
+
+        var customViews: [(item: NSMenuItem, builder: (CGFloat) -> (NSView, () -> Void))] = []
+
+        // --- System Summary Section ---
+        let cpuItem = NSMenuItem(title: "CPU              100%", action: nil, keyEquivalent: "")
+        cpuItem.isEnabled = false
+        menu.addItem(cpuItem)
+        customViews.append((cpuItem, { [weak self] width in 
+            guard let self = self else { return (NSView(), {}) }
+            let (view, updateBlock) = Self.progressBarRow(label: "CPU", percent: self.currentCpuStats.usagePercent, valueText: Self.formatCPU(self.currentCpuStats.usagePercent), prefix: "cpu", width: width)
+            let updater = { [weak self, weak view] in
+                guard let self = self, let view = view else { return }
+                let pct = self.currentCpuStats.usagePercent
+                let isDark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                updateBlock(pct, Self.formatCPU(pct), colorForUsage(pct, isDark: isDark, metricPrefix: "cpu"))
+            }
+            return (view, updater)
+        }))
+
+        let ramItem = NSMenuItem(title: "RAM              32.0/32.0 GB", action: nil, keyEquivalent: "")
+        ramItem.isEnabled = false
+        menu.addItem(ramItem)
+        customViews.append((ramItem, { [weak self] width in 
+            guard let self = self else { return (NSView(), {}) }
+            let valStr = String(format: "%.1f/%.0f GB", self.currentMemStats.usedGB, self.currentMemStats.totalGB)
+            let (view, updateBlock) = Self.progressBarRow(label: "RAM", percent: self.currentMemStats.usedPercent, valueText: valStr, prefix: "mem", width: width)
+            let updater = { [weak self, weak view] in
+                guard let self = self, let view = view else { return }
+                let pct = self.currentMemStats.usedPercent
+                let newStr = String(format: "%.1f/%.0f GB", self.currentMemStats.usedGB, self.currentMemStats.totalGB)
+                let isDark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                updateBlock(pct, newStr, colorForUsage(pct, isDark: isDark, metricPrefix: "mem"))
+            }
+            return (view, updater)
+        }))
+
+        let tempItem = NSMenuItem(title: "Temp              100°C", action: nil, keyEquivalent: "")
+        tempItem.isEnabled = false
+        menu.addItem(tempItem)
+        customViews.append((tempItem, { [weak self] width in 
+            guard let self = self else { return (NSView(), {}) }
+            let t = self.currentCpuStats.temperature
+            let valStr = t > 0 ? String(format: "%.0f°%@", t, self.tempUnit) : "--"
+            let (view, updateBlock) = Self.inlineRow(label: "Temp", valueText: valStr, isTemp: true, tempVal: t, width: width)
+            let updater = { [weak self, weak view] in
+                guard let self = self, let view = view else { return }
+                let tNew = self.currentCpuStats.temperature
+                let newStr = tNew > 0 ? String(format: "%.0f°%@", tNew, self.tempUnit) : "--"
+                let isDark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                let color = (tNew > 0) ? colorForTemperature(tNew, isDark: isDark) : .secondaryLabelColor
+                updateBlock(newStr, color)
+            }
+            return (view, updater)
+        }))
+        menu.addItem(NSMenuItem.separator())
+
+        // --- Network Summary Section ---
+        let netItem = NSMenuItem(title: "en0      ↑ 100.0 MB/s  ↓ 100.0 MB/s", action: nil, keyEquivalent: "")
+        netItem.isEnabled = false
+        menu.addItem(netItem)
+        customViews.append((netItem, { [weak self] width in 
+            guard let self = self else { return (NSView(), {}) }
+            let (view, updateBlock) = Self.networkRow(interface: self.currentNetStats.activeInterface, upBps: self.currentNetStats.uploadBytesPerSec, downBps: self.currentNetStats.downloadBytesPerSec, width: width)
+            let updater = { [weak self] in
+                guard let self = self else { return }
+                updateBlock(self.currentNetStats.activeInterface, self.currentNetStats.uploadBytesPerSec, self.currentNetStats.downloadBytesPerSec)
+            }
+            return (view, updater)
+        }))
+        menu.addItem(NSMenuItem.separator())
 
         // --- Top Processes Section ---
         // Fetched fresh on open; excludes system daemons and rolls helpers into their app.
         // Rows start as plain items so the menu can compute its natural width; below
         // we swap in width-filling views that right-align the value flush to that width.
-        var usageRows: [(item: NSMenuItem, name: String, value: String)] = []
         let top = statsEngine.fetchTopProcesses(limit: 3)
         if !top.byCPU.isEmpty {
             menu.addItem(Self.sectionHeader("Top CPU"))
@@ -101,7 +186,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
                 let value = Self.formatCPU(p.cpuPercent)
                 let item = Self.provisionalUsageItem(name: p.name, value: value)
                 menu.addItem(item)
-                usageRows.append((item, p.name, value))
+                customViews.append((item, { w in (Self.usageRowView(name: p.name, value: value, width: w), {}) }))
             }
             menu.addItem(NSMenuItem.separator())
         }
@@ -111,7 +196,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
                 let value = Self.formatMemory(p.memoryBytes)
                 let item = Self.provisionalUsageItem(name: p.name, value: value)
                 menu.addItem(item)
-                usageRows.append((item, p.name, value))
+                customViews.append((item, { w in (Self.usageRowView(name: p.name, value: value, width: w), {}) }))
             }
             menu.addItem(NSMenuItem.separator())
         }
@@ -139,7 +224,13 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(autoStartItem)
         
         let intervalSubmenu = NSMenu()
-        let intervals: [(String, TimeInterval)] = [("1 second", 1.0), ("2 seconds", 2.0), ("5 seconds", 5.0)]
+        let intervals: [(String, TimeInterval)] = [
+            ("Ultra Fast (250 ms)", 0.25),
+            ("Fast (500 ms)", 0.5),
+            ("Normal (1 s)", 1.0),
+            ("Slow (2 s)", 2.0),
+            ("Very Slow (5 s)", 5.0)
+        ]
         for (label, sec) in intervals {
             let item = NSMenuItem(title: label, action: #selector(changeInterval(_:)), keyEquivalent: "")
             item.target = self
@@ -166,6 +257,25 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         tempUnitItem.submenu = tempUnitSubmenu
         menu.addItem(tempUnitItem)
         
+        let netUnitSubmenu = NSMenu()
+        let netUnits: [(String, NetworkUnitMode)] = [
+            ("Auto (B, K, M, G)", .auto),
+            ("Binary (B, KiB, MiB, GiB)", .binary),
+            ("Decimal (B, KB, MB, GB)", .decimal),
+            ("Bits (bps, Kbps, Mbps)", .bits)
+        ]
+        for (label, mode) in netUnits {
+            let item = NSMenuItem(title: label, action: #selector(changeNetworkUnit(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            item.state = (networkUnitMode == mode) ? .on : .off
+            netUnitSubmenu.addItem(item)
+        }
+        
+        let netUnitItem = NSMenuItem(title: "Network Unit", action: nil, keyEquivalent: "")
+        netUnitItem.submenu = netUnitSubmenu
+        menu.addItem(netUnitItem)
+        
         menu.addItem(NSMenuItem.separator())
 
         // GitHub Link
@@ -176,24 +286,27 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
         
         // Quit
-        let quitItem = NSMenuItem(title: "Quit MacStats", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit MeMo", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
         // Now that every item is present, the menu's width is final. Replace each
-        // provisional process row with a view that fills that width and pins its
-        // value to the right edge — so the value column aligns with no trailing gap.
-        if !usageRows.isEmpty {
+        // provisional item with a custom view that fills that width.
+        activeMenuUpdaters.removeAll()
+        if !customViews.isEmpty {
             let width = menu.size.width
-            for row in usageRows {
-                row.item.title = ""
-                row.item.view = Self.usageRowView(name: row.name, value: row.value, width: width)
+            for cv in customViews {
+                cv.item.title = ""
+                let (view, updater) = cv.builder(width)
+                cv.item.view = view
+                activeMenuUpdaters.append(updater)
             }
         }
 
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+        activeMenuUpdaters.removeAll()
     }
     
     private var isLaunchAtLoginEnabled: Bool {
@@ -202,7 +315,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             if status == .enabled { return true }
         }
         
-        let plistPath = NSString(string: "~/Library/LaunchAgents/com.openhoangnc.macstats.plist").expandingTildeInPath
+        let plistPath = NSString(string: "~/Library/LaunchAgents/com.giangdq202.memo.plist").expandingTildeInPath
         if FileManager.default.fileExists(atPath: plistPath) {
             return true
         }
@@ -228,7 +341,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        let plistPath = NSString(string: "~/Library/LaunchAgents/com.openhoangnc.macstats.plist").expandingTildeInPath
+        let plistPath = NSString(string: "~/Library/LaunchAgents/com.giangdq202.memo.plist").expandingTildeInPath
         let uid = getuid()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
@@ -264,11 +377,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        let plistPath = NSString(string: "~/Library/LaunchAgents/com.openhoangnc.macstats.plist").expandingTildeInPath
+        let plistPath = NSString(string: "~/Library/LaunchAgents/com.giangdq202.memo.plist").expandingTildeInPath
         if enabled {
             let execPath = Bundle.main.bundlePath.hasSuffix(".app")
-                ? "\(Bundle.main.bundlePath)/Contents/MacOS/MacStats"
-                : "/Applications/MacStats.app/Contents/MacOS/MacStats"
+                ? "\(Bundle.main.bundlePath)/Contents/MacOS/MeMo"
+                : "/Applications/MeMo.app/Contents/MacOS/MeMo"
             
             let plistContent = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -276,7 +389,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             <plist version="1.0">
             <dict>
                 <key>Label</key>
-                <string>com.openhoangnc.macstats</string>
+                <string>com.giangdq202.memo</string>
                 <key>ProgramArguments</key>
                 <array>
                     <string>\(execPath)</string>
@@ -335,6 +448,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue, forKey: "showCPUTemperature"); updateUIForSettingsChange() }
     }
     
+    private var networkUnitMode: NetworkUnitMode {
+        get { NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "networkUnitMode"); updateUIForSettingsChange() }
+    }
+    
     @objc private func toggleShowNetwork(_ sender: NSMenuItem) {
         showNetworkSpeeds.toggle()
     }
@@ -359,6 +477,12 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func changeTempUnit(_ sender: NSMenuItem) {
         if let unit = sender.representedObject as? String {
             tempUnit = unit
+        }
+    }
+    
+    @objc private func changeNetworkUnit(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? Int, let mode = NetworkUnitMode(rawValue: raw) {
+            networkUnitMode = mode
         }
     }
     
@@ -434,6 +558,172 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         return container
     }
 
+    private static func progressBarRow(label: String, percent: Double, valueText: String, prefix: String, width: CGFloat) -> (NSView, (Double, String, NSColor) -> Void) {
+        let leftInset: CGFloat = 21
+        let rightInset: CGFloat = 21
+        let font = NSFont.menuFont(ofSize: 0)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 20))
+
+        let maxLabelWidth: CGFloat = 100
+        let valueLabel = NSTextField(labelWithString: valueText)
+        valueLabel.font = font
+        valueLabel.textColor = .secondaryLabelColor
+        valueLabel.alignment = .right
+        valueLabel.frame = NSRect(x: width - rightInset - maxLabelWidth, y: 2, width: maxLabelWidth, height: 16)
+        valueLabel.autoresizingMask = [.minXMargin]
+        container.addSubview(valueLabel)
+
+        let nameLabel = NSTextField(labelWithString: label)
+        nameLabel.font = font
+        nameLabel.textColor = .labelColor
+        nameLabel.frame = NSRect(x: leftInset, y: 2, width: 35, height: 16)
+        container.addSubview(nameLabel)
+
+        let barX = leftInset + 40
+        let barW = max(0, valueLabel.frame.minX - 8 - barX)
+        let barView = ProgressBarView(frame: NSRect(x: barX, y: 6, width: barW, height: 8))
+        barView.percent = percent
+        barView.autoresizingMask = [.width]
+        
+        let isDark = container.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        barView.fillColor = colorForUsage(percent, isDark: isDark, metricPrefix: prefix)
+        
+        container.addSubview(barView)
+        
+        let updater: (Double, String, NSColor) -> Void = { newPercent, newStr, newColor in
+            valueLabel.stringValue = newStr
+            barView.percent = newPercent
+            barView.fillColor = newColor
+            barView.needsDisplay = true
+        }
+        
+        return (container, updater)
+    }
+
+    private static func inlineRow(label: String, valueText: String, isTemp: Bool, tempVal: Double, width: CGFloat) -> (NSView, (String, NSColor) -> Void) {
+        let leftInset: CGFloat = 21
+        let rightInset: CGFloat = 21
+        let font = NSFont.menuFont(ofSize: 0)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 20))
+
+        let maxLabelWidth: CGFloat = 100
+        let valueLabel = NSTextField(labelWithString: valueText)
+        valueLabel.font = font
+        valueLabel.alignment = .right
+        valueLabel.frame = NSRect(x: width - rightInset - maxLabelWidth, y: 2, width: maxLabelWidth, height: 16)
+        valueLabel.autoresizingMask = [.minXMargin]
+        
+        let isDark = container.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        if isTemp && tempVal > 0 {
+            valueLabel.textColor = colorForTemperature(tempVal, isDark: isDark)
+        } else {
+            valueLabel.textColor = .secondaryLabelColor
+        }
+        
+        container.addSubview(valueLabel)
+
+        let nameLabel = NSTextField(labelWithString: label)
+        nameLabel.font = font
+        nameLabel.textColor = .labelColor
+        nameLabel.frame = NSRect(x: leftInset, y: 2, width: 35, height: 16)
+        container.addSubview(nameLabel)
+
+        let updater: (String, NSColor) -> Void = { newStr, newColor in
+            valueLabel.stringValue = newStr
+            valueLabel.textColor = newColor
+        }
+        
+        return (container, updater)
+    }
+
+    private static func networkRow(interface: String, upBps: Double, downBps: Double, width: CGFloat) -> (NSView, (String, Double, Double) -> Void) {
+        let leftInset: CGFloat = 21
+        let rightInset: CGFloat = 21
+        let font = NSFont.menuFont(ofSize: 0)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 20))
+
+        let nameLabel = NSTextField(labelWithString: interface)
+        nameLabel.font = font
+        nameLabel.textColor = .labelColor
+        nameLabel.frame = NSRect(x: leftInset, y: 2, width: 35, height: 16)
+        container.addSubview(nameLabel)
+
+        let upStr = "↑ " + formatNetworkSpeed(upBps)
+        let downStr = "↓ " + formatNetworkSpeed(downBps)
+        let speedsStr = "\(upStr)   \(downStr)"
+
+        let maxLabelWidth: CGFloat = 160
+        let valueLabel = NSTextField(labelWithString: speedsStr)
+        valueLabel.font = font
+        valueLabel.textColor = .secondaryLabelColor
+        valueLabel.alignment = .right
+        valueLabel.frame = NSRect(x: width - rightInset - maxLabelWidth, y: 2, width: maxLabelWidth, height: 16)
+        valueLabel.autoresizingMask = [.minXMargin]
+        container.addSubview(valueLabel)
+
+        let updater: (String, Double, Double) -> Void = { newIf, newUp, newDown in
+            nameLabel.stringValue = newIf
+            let newUpStr = "↑ " + formatNetworkSpeed(newUp)
+            let newDownStr = "↓ " + formatNetworkSpeed(newDown)
+            valueLabel.stringValue = "\(newUpStr)   \(newDownStr)"
+        }
+        
+        return (container, updater)
+    }
+
+    private static func formatNetworkSpeed(_ bytesPerSec: Double) -> String {
+        let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
+        let val: Double
+        let tiers: [(threshold: Double, divisor: Double, unit: String)]
+        
+        switch mode {
+        case .auto:
+            val = bytesPerSec
+            tiers = [
+                (1000.0, 1.0, "B/s"),
+                (1024.0 * 1000.0, 1024.0, "K/s"),
+                (1024.0 * 1000000.0, 1048576.0, "M/s"),
+                (Double.infinity, 1073741824.0, "G/s"),
+            ]
+        case .binary:
+            val = bytesPerSec
+            tiers = [
+                (1024.0, 1.0, "B/s"),
+                (1024.0 * 1024.0, 1024.0, "KiB/s"),
+                (1024.0 * 1048576.0, 1048576.0, "MiB/s"),
+                (Double.infinity, 1073741824.0, "GiB/s"),
+            ]
+        case .decimal:
+            val = bytesPerSec
+            tiers = [
+                (1000.0, 1.0, "B/s"),
+                (1000.0 * 1000.0, 1000.0, "KB/s"),
+                (1000.0 * 1000000.0, 1000000.0, "MB/s"),
+                (Double.infinity, 1000000000.0, "GB/s"),
+            ]
+        case .bits:
+            val = bytesPerSec * 8.0
+            tiers = [
+                (1000.0, 1.0, "bps"),
+                (1000.0 * 1000.0, 1000.0, "Kbps"),
+                (1000.0 * 1000000.0, 1000000.0, "Mbps"),
+                (Double.infinity, 1000000000.0, "Gbps"),
+            ]
+        }
+        
+        for tier in tiers {
+            if val < tier.threshold {
+                let scaled = val / tier.divisor
+                if scaled < 10.0 && tier.divisor > 1.0 {
+                    return String(format: "%.1f %@", scaled, tier.unit)
+                } else {
+                    return String(format: "%.0f %@", scaled, tier.unit)
+                }
+            }
+        }
+        return String(format: "%.0f %@", val, tiers.last?.unit ?? "B/s")
+    }
+
     private static func formatCPU(_ percent: Double) -> String {
         return String(format: "%.0f%%", percent)
     }
@@ -442,5 +732,25 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         let gb = Double(bytes) / 1_073_741_824.0
         if gb >= 1.0 { return String(format: "%.1f GB", gb) }
         return String(format: "%.0f MB", Double(bytes) / 1_048_576.0)
+    }
+}
+
+class ProgressBarView: NSView {
+    var percent: Double = 0
+    var fillColor: NSColor = .systemBlue
+
+    override func draw(_ dirtyRect: NSRect) {
+        let trackPath = NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4)
+        NSColor.tertiaryLabelColor.withAlphaComponent(0.2).setFill()
+        trackPath.fill()
+
+        let p = min(max(percent, 0.0), 100.0) / 100.0
+        if p > 0 {
+            let w = max(bounds.height, bounds.width * CGFloat(p))
+            let fillRect = NSRect(x: 0, y: 0, width: w, height: bounds.height)
+            let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: 4, yRadius: 4)
+            fillColor.setFill()
+            fillPath.fill()
+        }
     }
 }

@@ -7,6 +7,11 @@
 - **Giải pháp**: Hardcode `SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"` trong `build.sh`
 - **Lý do**: Swift 6.2.4 (swiftlang-6.2.4.1.4) cần SDK khớp với compiler version
 
+### 2026-08-08: Rebrand & Customization
+- **App Name**: Đổi từ MacStats sang MeMo (Menu Monitor)
+- **Credit**: Ghi công `openhoangnc/mac-stats`, thêm modifier `giangdq202`
+- **Icon**: Thay đổi thành speedometer icon hiện đại
+
 ### 2026-08-07: Fork Setup
 - **Nguồn gốc**: Fork từ openhoangnc/mac-stats (MIT License)
 - **Mục tiêu**: Personalization — custom thresholds, compact display
@@ -37,13 +42,17 @@
 - [x] VS Code configurations (tasks, launch, settings)
 - [x] Critical bugs fix: timer double-fire, CPU overflow, SMC guard, interval persist
 - [x] Optimizations: SMC keyInfo cache, draw() cache, Float endian fix, codesign cleanup
+- [x] Custom color thresholds (warn/critical levels)
+- [x] Discrete 4-level colors (Green/Yellow/Orange/Red)
+- [x] Enhanced Dropdown Menu (system summary, progress bars)
+- [x] Network Display Unit Setting
+- [x] Optimal Hardcoded Thresholds (Removed UI)
+- [x] Removed Display Mode (relying on toggles)
+- [x] Network Up/Down Icons
+- [x] Dynamic Dropdown Menu & Update Interval (ms)
+- [x] Rebrand app to MeMo, add speedometer icon
 
 ### 🚧 In Progress
-- [ ] Custom color thresholds (warn/critical levels)
-
-### 📋 Planned
-- [ ] Compact display mode
-- [ ] Discrete colors (not gradient)
 - [ ] (Future) Notification alerts
 - [ ] (Future) History sparkline chart
 
