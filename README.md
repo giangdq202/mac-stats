@@ -1,6 +1,9 @@
 # MeMo (Menu Monitor) 📊
 
-> **Developed by giangdq202. Forked from openhoangnc/mac-stats.**
+> [!WARNING]
+> **This is a custom personal fork.** 
+> This repository is highly customized for my own specific needs and aesthetic preferences. For the original general-purpose version, please visit the upstream repository: [openhoangnc/mac-stats](https://github.com/openhoangnc/mac-stats).
+
 > A lightweight, zero-Xcode macOS menu bar system monitor written purely in Swift. Keeps track of your CPU usage, Memory consumption, Network speeds, and CPU temperature in real-time.—right at a glance.
 
 🌐 [English](README.md) | [Tiếng Việt](README.vi.md)
