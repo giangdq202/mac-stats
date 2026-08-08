@@ -42,7 +42,8 @@
 - [x] Enhanced Dropdown Menu (system summary, progress bars)
 - [x] Network Display Unit Setting
 - [x] Optimal Hardcoded Thresholds (Removed UI)
-- [x] Compact display mode
+- [x] Removed Display Mode (relying on toggles)
+- [x] Network Up/Down Icons
 - [x] Dynamic Dropdown Menu & Update Interval (ms)
 
 ### 🚧 In Progress
