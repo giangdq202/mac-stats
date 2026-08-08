@@ -7,6 +7,11 @@
 - **Giải pháp**: Hardcode `SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"` trong `build.sh`
 - **Lý do**: Swift 6.2.4 (swiftlang-6.2.4.1.4) cần SDK khớp với compiler version
 
+### 2026-08-08: Rebrand & Customization
+- **App Name**: Đổi từ MacStats sang MeMo (Menu Monitor)
+- **Credit**: Ghi công `openhoangnc/mac-stats`, thêm modifier `giangdq202`
+- **Icon**: Thay đổi thành speedometer icon hiện đại
+
 ### 2026-08-07: Fork Setup
 - **Nguồn gốc**: Fork từ openhoangnc/mac-stats (MIT License)
 - **Mục tiêu**: Personalization — custom thresholds, compact display
@@ -45,6 +50,7 @@
 - [x] Removed Display Mode (relying on toggles)
 - [x] Network Up/Down Icons
 - [x] Dynamic Dropdown Menu & Update Interval (ms)
+- [x] Rebrand app to MeMo, add speedometer icon
 
 ### 🚧 In Progress
 - [ ] (Future) Notification alerts
