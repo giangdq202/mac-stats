@@ -138,6 +138,7 @@ public class UnifiedStatsView: BaseStatsView {
     private var lastDownBPS: Double = -1
     private var lastCpuPct: Double = -1
     private var lastMemGB: Double = -1
+    private var lastMemPct: Double = -1
     private var lastTempC: Double = -1
     private var lastTempUnit: String = ""
     private var lastMode: NetworkUnitMode = .auto
@@ -250,7 +251,7 @@ public class UnifiedStatsView: BaseStatsView {
             cachedIsDark = isDark
             lastMode = mode
             cachedUpLine = nil; cachedDownLine = nil; cachedCpuLine = nil; cachedMemLine = nil; cachedTempLine = nil; cachedTempUnitLine = nil
-            lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastTempC = -1; lastTempUnit = ""
+            lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastMemPct = -1; lastTempC = -1; lastTempUnit = ""
         }
 
         let textColor = isDark ? NSColor.white : NSColor.black
@@ -304,8 +305,9 @@ public class UnifiedStatsView: BaseStatsView {
         cachedCpuLine!.draw(in: CGRect(x: currentX, y: line1Y, width: cpuMemW, height: lineH))
 
         // RAM
-        if cachedMemLine == nil || _memGB != lastMemGB {
+        if cachedMemLine == nil || _memGB != lastMemGB || _memPercent != lastMemPct {
             lastMemGB = _memGB
+            lastMemPct = _memPercent
             let memKey = String(format: "%.1f", _memGB)
             let memColor = colorForUsage(_memPercent, isDark: isDark, metricPrefix: "mem")
             cachedMemLine = buildLine(val: memKey, unit: "G", color: memColor, dimAlpha: dimAlpha,
