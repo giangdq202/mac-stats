@@ -14,41 +14,60 @@ public class BaseStatsView: NSView {
 }
 
 // MARK: - Color Utilities
-private func getContrastOptimizedColor(normalized: Double, isDark: Bool) -> NSColor {
-    let clamped = min(max(normalized, 0.0), 1.0)
-    let hueDegrees = 120.0 - clamped * 130.0
-    let hue = (hueDegrees < 0.0 ? hueDegrees + 360.0 : hueDegrees) / 360.0
-    
-    let saturation: CGFloat
-    let brightness: CGFloat
-    
-    if isDark {
-        saturation = CGFloat(0.40 + clamped * 0.05)
-        brightness = CGFloat(0.95 + clamped * 0.05)
-    } else {
-        saturation = CGFloat(0.85 + clamped * 0.05)
-        brightness = CGFloat(0.28 + clamped * 0.05)
-    }
-    
-    return NSColor(calibratedHue: hue, saturation: saturation, brightness: brightness, alpha: 1.0)
+private enum AlertLevel: Int {
+    case normal = 0
+    case warning = 1
+    case high = 2
+    case critical = 3
 }
 
-private func colorForUsage(_ percent: Double, isDark: Bool) -> NSColor {
-    let clamped = min(max(percent, 0.0), 100.0) / 100.0
-    return getContrastOptimizedColor(normalized: clamped, isDark: isDark)
+private func discreteColor(level: AlertLevel, isDark: Bool) -> NSColor {
+    switch level {
+    case .normal: // Green
+        return isDark ? NSColor(calibratedHue: 130.0/360.0, saturation: 0.40, brightness: 0.92, alpha: 1.0)
+                      : NSColor(calibratedHue: 130.0/360.0, saturation: 0.85, brightness: 0.32, alpha: 1.0)
+    case .warning: // Yellow
+        return isDark ? NSColor(calibratedHue: 48.0/360.0, saturation: 0.45, brightness: 0.95, alpha: 1.0)
+                      : NSColor(calibratedHue: 48.0/360.0, saturation: 0.85, brightness: 0.38, alpha: 1.0)
+    case .high: // Orange
+        return isDark ? NSColor(calibratedHue: 28.0/360.0, saturation: 0.50, brightness: 0.95, alpha: 1.0)
+                      : NSColor(calibratedHue: 28.0/360.0, saturation: 0.85, brightness: 0.40, alpha: 1.0)
+    case .critical: // Red
+        return isDark ? NSColor(calibratedHue: 0.0/360.0, saturation: 0.50, brightness: 0.95, alpha: 1.0)
+                      : NSColor(calibratedHue: 0.0/360.0, saturation: 0.85, brightness: 0.42, alpha: 1.0)
+    }
+}
+
+private func levelForValue(_ value: Double, warn: Double, high: Double, crit: Double) -> AlertLevel {
+    if value >= crit { return .critical }
+    if value >= high { return .high }
+    if value >= warn { return .warning }
+    return .normal
+}
+
+private func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String) -> NSColor {
+    let warn = UserDefaults.standard.object(forKey: "\(metricPrefix)WarnThreshold") as? Double ?? 60.0
+    let high = UserDefaults.standard.object(forKey: "\(metricPrefix)HighThreshold") as? Double ?? 75.0
+    let crit = UserDefaults.standard.object(forKey: "\(metricPrefix)CriticalThreshold") as? Double ?? 90.0
+    let level = levelForValue(percent, warn: warn, high: high, crit: crit)
+    return discreteColor(level: level, isDark: isDark)
 }
 
 private func colorForTemperature(_ temp: Double, isDark: Bool) -> NSColor {
-    // Range from 35.0 (cool/green) to 85.0 (hot/red)
-    let clamped = min(max(temp - 35.0, 0.0), 50.0) / 50.0
-    return getContrastOptimizedColor(normalized: clamped, isDark: isDark)
+    let warn = UserDefaults.standard.object(forKey: "tempWarnThreshold") as? Double ?? 55.0
+    let high = UserDefaults.standard.object(forKey: "tempHighThreshold") as? Double ?? 70.0
+    let crit = UserDefaults.standard.object(forKey: "tempCriticalThreshold") as? Double ?? 85.0
+    let level = levelForValue(temp, warn: warn, high: high, crit: crit)
+    return discreteColor(level: level, isDark: isDark)
 }
 
 private func colorForNetworkSpeed(_ bytesPerSec: Double, isDark: Bool, defaultColor: NSColor) -> NSColor {
     guard bytesPerSec >= 1024.0 else { return defaultColor }
     let logKb = log10(bytesPerSec / 1024.0)
     let normalized = min(max(logKb / 4.5, 0.0), 1.0)
-    return getContrastOptimizedColor(normalized: normalized, isDark: isDark)
+    // Map normalized speed [0, 1] to threshold levels roughly mapping to 40%, 60%, 80% full scale
+    let level = levelForValue(normalized * 100.0, warn: 40.0, high: 60.0, crit: 80.0)
+    return discreteColor(level: level, isDark: isDark)
 }
 
 
@@ -222,7 +241,7 @@ public class UnifiedStatsView: BaseStatsView {
         if cachedCpuLine == nil || _cpuPercent != lastCpuPct {
             lastCpuPct = _cpuPercent
             let cpuVal = String(format: "%.0f", _cpuPercent)
-            let cpuColor = colorForUsage(_cpuPercent, isDark: isDark)
+            let cpuColor = colorForUsage(_cpuPercent, isDark: isDark, metricPrefix: "cpu")
             cachedCpuLine = buildLine(val: cpuVal, unit: "%", color: cpuColor, dimAlpha: dimAlpha,
                                        valFont: font, uFont: cpuMemUnitFont)
         }
@@ -232,7 +251,7 @@ public class UnifiedStatsView: BaseStatsView {
         if cachedMemLine == nil || _memGB != lastMemGB {
             lastMemGB = _memGB
             let memKey = String(format: "%.1f", _memGB)
-            let memColor = colorForUsage(_memPercent, isDark: isDark)
+            let memColor = colorForUsage(_memPercent, isDark: isDark, metricPrefix: "mem")
             cachedMemLine = buildLine(val: memKey, unit: "G", color: memColor, dimAlpha: dimAlpha,
                                        valFont: font, uFont: cpuMemUnitFont)
         }
