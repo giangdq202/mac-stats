@@ -1,7 +1,7 @@
 import AppKit
 import ServiceManagement
 
-public class AppDelegate: NSObject, NSApplicationDelegate {
+public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var statsView: UnifiedStatsView!
     
@@ -305,9 +305,13 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        menu.delegate = self
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    public func menuDidClose(_ menu: NSMenu) {
         activeMenuUpdaters.removeAll()
     }
     
