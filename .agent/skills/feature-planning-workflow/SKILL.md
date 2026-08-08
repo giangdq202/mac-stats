@@ -9,9 +9,7 @@ description: >
 
 ## Quy Trình Bắt Buộc
 
-```
-GRILL → PLAN → BRANCH → IMPLEMENT → BUILD → TEST → COMMIT → MEMORY → MERGE
-```
+GRILL → PLAN → BRANCH → IMPLEMENT → BUILD → TEST → COMMIT → MEMORY → PR & MERGE
 
 ---
 
@@ -71,10 +69,9 @@ Sau khi hiểu mong muốn, tạo plan và grill cho đến khi được approve
 
 ## Bước 3: BRANCH — Tạo Nhánh Trước
 
-```bash
 # Tạo branch từ main
 git checkout main
-git pull  # nếu có remote
+git pull origin main
 git checkout -b feat/ten-tinh-nang
 
 # Ví dụ:
@@ -145,10 +142,17 @@ Sau mỗi commit, cập nhật:
 
 ---
 
-## Bước 9: MERGE — Về Main Khi Xong
+## Bước 9: PR & MERGE — Push và tạo PR
 
 ```bash
-git checkout main
-git merge feat/ten-tinh-nang
-# Nếu có conflict → giải quyết và grill developer
+# 1. Push nhánh lên remote
+git push -u origin feat/ten-tinh-nang
+
+# 2. Tạo PR (có thể dùng gh cli)
+gh pr create --title "feat: ten tinh nang" --body "Mo ta chi tiet"
+
+# 3. Squash Merge PR
+gh pr merge --squash --delete-branch
 ```
+
+> ⚠️ **KHÔNG `git merge` trực tiếp vào `main` ở local.** Repository đã bật Branch Protection, chỉ cho phép Squash Merge thông qua Pull Request.

@@ -28,6 +28,7 @@ docs/update-agents-md
 ```bash
 # Luôn tạo branch từ main
 git checkout main
+git pull origin main
 git checkout -b feat/ten-tinh-nang
 ```
 
@@ -69,19 +70,24 @@ git commit -m "chore: fix SDK path in build.sh for Swift 6.2.4"
 
 ---
 
-## Merge Strategy
+## Merge Strategy (Pull Request & Squash Merge)
+
+Repository này sử dụng **Branch Protection** trên nhánh `main`. Không thể push trực tiếp hay merge ở local.
 
 ```bash
-# Khi feature xong, merge về main
+# 1. Push feature branch lên remote
+git push -u origin feat/ten-tinh-nang
+
+# 2. Mở Pull Request
+gh pr create --title "feat: ..." --body "..."
+
+# 3. Merge PR (chọn Squash Merge)
+gh pr merge --squash --delete-branch
+
+# 4. Cập nhật local sau khi merge
 git checkout main
-git merge feat/ten-tinh-nang
-
-# Sau merge, xóa branch cũ (tùy chọn)
-git branch -d feat/ten-tinh-nang
+git pull origin main
 ```
-
-> Hiện tại chưa có remote repo → không `git push`.
-> Khi có remote, sẽ update skill này.
 
 ---
 

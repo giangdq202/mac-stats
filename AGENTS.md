@@ -11,7 +11,7 @@
 Fork cá nhân từ [openhoangnc/mac-stats](https://github.com/openhoangnc/mac-stats) (MIT License).
 
 **Owner**: Người dùng cá nhân, đang học Swift qua việc làm thực tế.
-**Remote repo**: Chưa có — chỉ làm local. Không push lên bất kỳ remote nào khi chưa được yêu cầu.
+**Remote repo**: Đã cấu hình trên GitHub (`origin`) với **Branch Protection** (Bắt buộc PR, Squash Merge, Không force-push).
 
 ---
 
@@ -28,7 +28,7 @@ Fork cá nhân từ [openhoangnc/mac-stats](https://github.com/openhoangnc/mac-s
 6. TEST     → Xác nhận app chạy đúng
 7. COMMIT   → Commit với Conventional Commits format
 8. MEMORY   → Cập nhật `.agent/memory/` sau mỗi commit
-9. MERGE    → Merge vào main khi test xong xuôi
+9. PR & MERGE → Push branch, mở PR và Squash Merge vào main
 ```
 
 > ⚠️ **KHÔNG BAO GIỜ code trực tiếp trên nhánh `main`.**
@@ -127,7 +127,7 @@ Chi tiết xem: [`.agent/rules/swift-style.md`](.agent/rules/swift-style.md)
 - ❌ Commit build artifacts (`MacStats.app`, `*_arm64`, `*_x86_64`)
 - ❌ Viết code block dài quá 50 dòng trong một lần
 - ❌ Code trực tiếp trên nhánh `main`
-- ❌ Push lên remote khi chưa được yêu cầu
+- ❌ Push trực tiếp lên nhánh `main` (mọi code phải qua PR)
 
 ---
 
@@ -141,7 +141,7 @@ Một feature được coi là hoàn thành khi:
 5. Dark mode và Light mode đều hiển thị đúng
 6. Đã commit với Conventional Commits message
 7. Đã cập nhật `.agent/memory/` sau commit
-8. Đã merge vào `main`
+8. Đã push nhánh lên remote, mở PR và Squash Merge vào `main`
 
 ---
 
