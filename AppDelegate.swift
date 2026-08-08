@@ -239,6 +239,25 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         netUnitItem.submenu = netUnitSubmenu
         menu.addItem(netUnitItem)
         
+        let presetSubmenu = NSMenu()
+        let presets: [(String, ThresholdPreset)] = [
+            ("Conservative", .conservative),
+            ("Balanced", .balanced),
+            ("Aggressive", .aggressive),
+            ("Custom (via defaults)", .custom)
+        ]
+        for (label, preset) in presets {
+            let item = NSMenuItem(title: label, action: #selector(changeThresholdPreset(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = preset.rawValue
+            item.state = (thresholdPreset == preset) ? .on : .off
+            presetSubmenu.addItem(item)
+        }
+        
+        let presetItem = NSMenuItem(title: "Color Thresholds", action: nil, keyEquivalent: "")
+        presetItem.submenu = presetSubmenu
+        menu.addItem(presetItem)
+        
         menu.addItem(NSMenuItem.separator())
 
         // GitHub Link
@@ -412,6 +431,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "networkUnitMode"); updateUIForSettingsChange() }
     }
     
+    private var thresholdPreset: ThresholdPreset {
+        get { ThresholdPreset(rawValue: UserDefaults.standard.integer(forKey: "thresholdPreset")) ?? .balanced }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "thresholdPreset"); updateUIForSettingsChange() }
+    }
+    
     @objc private func toggleShowNetwork(_ sender: NSMenuItem) {
         showNetworkSpeeds.toggle()
     }
@@ -442,6 +466,12 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func changeNetworkUnit(_ sender: NSMenuItem) {
         if let raw = sender.representedObject as? Int, let mode = NetworkUnitMode(rawValue: raw) {
             networkUnitMode = mode
+        }
+    }
+    
+    @objc private func changeThresholdPreset(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? Int, let preset = ThresholdPreset(rawValue: raw) {
+            thresholdPreset = preset
         }
     }
     
