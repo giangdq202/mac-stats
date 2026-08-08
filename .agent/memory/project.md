@@ -11,6 +11,7 @@
 - **App Name**: Đổi từ MacStats sang MeMo (Menu Monitor)
 - **Credit**: Ghi công `openhoangnc/mac-stats`, thêm modifier `giangdq202`
 - **Icon**: Thay đổi thành speedometer icon hiện đại
+- **Release Scripts**: Fix `install.sh` download zip trỏ đúng repo giangdq202 và rename build artifacts sang `MeMo.zip` trong `release.yml`
 
 ### 2026-08-07: Fork Setup
 - **Nguồn gốc**: Fork từ openhoangnc/mac-stats (MIT License)

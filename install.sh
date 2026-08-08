@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO="openhoangnc/mac-stats"
+REPO="giangdq202/mac-stats"
 APP_NAME="MeMo"
 INSTALL_DIR="/Applications"
 APP_PATH="${INSTALL_DIR}/${APP_NAME}.app"
@@ -82,10 +82,10 @@ if [ -n "${SOURCE_DIR}" ] && [ -f "${SOURCE_DIR}/build.sh" ]; then
 else
     # Remote install: download the latest prebuilt release.
     echo "[1/3] Downloading latest release of ${APP_NAME}..."
-    LATEST_ZIP_URL="https://github.com/${REPO}/releases/latest/download/MacStats.zip"
-    if curl -fsSL -o "${TMP_DIR}/MacStats.zip" "${LATEST_ZIP_URL}"; then
-        echo "--> Downloaded MacStats.zip from GitHub Release."
-        unzip -q "${TMP_DIR}/MacStats.zip" -d "${TMP_DIR}"
+    LATEST_ZIP_URL="https://github.com/${REPO}/releases/latest/download/MeMo.zip"
+    if curl -fsSL -o "${TMP_DIR}/MeMo.zip" "${LATEST_ZIP_URL}"; then
+        echo "--> Downloaded MeMo.zip from GitHub Release."
+        unzip -q "${TMP_DIR}/MeMo.zip" -d "${TMP_DIR}"
         APP_SRC="${TMP_DIR}/${APP_NAME}.app"
     fi
     if [ ! -d "${APP_SRC}" ]; then
