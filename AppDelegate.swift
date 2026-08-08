@@ -654,8 +654,10 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         nameLabel.frame = NSRect(x: leftInset, y: 2, width: 35, height: 16)
         container.addSubview(nameLabel)
 
-        let upStr = "↑ " + formatNetworkSpeed(upBps)
-        let downStr = "↓ " + formatNetworkSpeed(downBps)
+        let upParts = formatNetworkSpeed(upBps)
+        let upStr = "↑ \(upParts.val) \(upParts.unit)"
+        let downParts = formatNetworkSpeed(downBps)
+        let downStr = "↓ \(downParts.val) \(downParts.unit)"
         let speedsStr = "\(upStr)   \(downStr)"
 
         let maxLabelWidth: CGFloat = 160
@@ -669,66 +671,17 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let updater: (String, Double, Double) -> Void = { newIf, newUp, newDown in
             nameLabel.stringValue = newIf
-            let newUpStr = "↑ " + formatNetworkSpeed(newUp)
-            let newDownStr = "↓ " + formatNetworkSpeed(newDown)
+            let newUpParts = formatNetworkSpeed(newUp)
+            let newUpStr = "↑ \(newUpParts.val) \(newUpParts.unit)"
+            let newDownParts = formatNetworkSpeed(newDown)
+            let newDownStr = "↓ \(newDownParts.val) \(newDownParts.unit)"
             valueLabel.stringValue = "\(newUpStr)   \(newDownStr)"
         }
         
         return (container, updater)
     }
 
-    private static func formatNetworkSpeed(_ bytesPerSec: Double) -> String {
-        let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
-        let val: Double
-        let tiers: [(threshold: Double, divisor: Double, unit: String)]
-        
-        switch mode {
-        case .auto:
-            val = bytesPerSec
-            tiers = [
-                (1000.0, 1.0, "B/s"),
-                (1024.0 * 1000.0, 1024.0, "K/s"),
-                (1024.0 * 1000000.0, 1048576.0, "M/s"),
-                (Double.infinity, 1073741824.0, "G/s"),
-            ]
-        case .binary:
-            val = bytesPerSec
-            tiers = [
-                (1024.0, 1.0, "B/s"),
-                (1024.0 * 1024.0, 1024.0, "KiB/s"),
-                (1024.0 * 1048576.0, 1048576.0, "MiB/s"),
-                (Double.infinity, 1073741824.0, "GiB/s"),
-            ]
-        case .decimal:
-            val = bytesPerSec
-            tiers = [
-                (1000.0, 1.0, "B/s"),
-                (1000.0 * 1000.0, 1000.0, "KB/s"),
-                (1000.0 * 1000000.0, 1000000.0, "MB/s"),
-                (Double.infinity, 1000000000.0, "GB/s"),
-            ]
-        case .bits:
-            val = bytesPerSec * 8.0
-            tiers = [
-                (1000.0, 1.0, "bps"),
-                (1000.0 * 1000.0, 1000.0, "Kbps"),
-                (1000.0 * 1000000.0, 1000000.0, "Mbps"),
-                (Double.infinity, 1000000000.0, "Gbps"),
-            ]
-        }
-        
-        for tier in tiers {
-            if val < tier.threshold {
-                let scaled = val / tier.divisor
-                if scaled < 10.0 && tier.divisor > 1.0 {
-                    return String(format: "%.1f %@", scaled, tier.unit)
-                } else {
-                    return String(format: "%.0f %@", scaled, tier.unit)
-                }
-            }
-        }
-        return String(format: "%.0f %@", val, tiers.last?.unit ?? "B/s")
-    }
+
 
     private static func formatCPU(_ percent: Double) -> String {
         return String(format: "%.0f%%", percent)

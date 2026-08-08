@@ -85,6 +85,69 @@ public func colorForNetworkSpeed(_ bytesPerSec: Double, isDark: Bool, defaultCol
     return discreteColor(level: level, isDark: isDark)
 }
 
+/// Shared network speed formatter. Returns (value, unit) so callers can
+/// compose them with any separator or font combination. Both the menu bar
+/// view and the dropdown menu call this single implementation.
+///
+/// - Parameters:
+///   - bytesPerSec: Raw bytes/second from StatsEngine.
+///   - shortUnit: When true, returns short units ("B","K","M","G") for the
+///     compact menu bar. When false, returns full units ("B/s","K/s","M/s"…).
+public func formatNetworkSpeed(_ bytesPerSec: Double, shortUnit: Bool = false) -> (val: String, unit: String) {
+    let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
+    let val: Double
+    let tiers: [(threshold: Double, divisor: Double, short: String, full: String)]
+    
+    switch mode {
+    case .auto:
+        val = bytesPerSec
+        tiers = [
+            (1000.0, 1.0, "B", "B/s"),
+            (1024.0 * 1000.0, 1024.0, "K", "K/s"),
+            (1024.0 * 1000000.0, 1048576.0, "M", "M/s"),
+            (Double.infinity, 1073741824.0, "G", "G/s"),
+        ]
+    case .binary:
+        val = bytesPerSec
+        tiers = [
+            (1024.0, 1.0, "B", "B/s"),
+            (1024.0 * 1024.0, 1024.0, "Ki", "KiB/s"),
+            (1024.0 * 1048576.0, 1048576.0, "Mi", "MiB/s"),
+            (Double.infinity, 1073741824.0, "Gi", "GiB/s"),
+        ]
+    case .decimal:
+        val = bytesPerSec
+        tiers = [
+            (1000.0, 1.0, "B", "B/s"),
+            (1000.0 * 1000.0, 1000.0, "K", "KB/s"),
+            (1000.0 * 1000000.0, 1000000.0, "M", "MB/s"),
+            (Double.infinity, 1000000000.0, "G", "GB/s"),
+        ]
+    case .bits:
+        val = bytesPerSec * 8.0
+        tiers = [
+            (1000.0, 1.0, "b", "bps"),
+            (1000.0 * 1000.0, 1000.0, "K", "Kbps"),
+            (1000.0 * 1000000.0, 1000000.0, "M", "Mbps"),
+            (Double.infinity, 1000000000.0, "G", "Gbps"),
+        ]
+    }
+    
+    for tier in tiers {
+        if val < tier.threshold {
+            let scaled = val / tier.divisor
+            let numStr: String
+            if scaled < 10.0 && tier.divisor > 1.0 {
+                numStr = String(format: "%.1f", scaled)
+            } else {
+                numStr = String(format: "%.0f", scaled)
+            }
+            return (numStr, shortUnit ? tier.short : tier.full)
+        }
+    }
+    let lastUnit = tiers.last.map { shortUnit ? $0.short : $0.full } ?? "B"
+    return (String(format: "%.0f", val), lastUnit)
+}
 
 // MARK: - Static constants (allocated once for app lifetime)
 private let rightAlignStyle: NSParagraphStyle = {
@@ -175,56 +238,7 @@ public class UnifiedStatsView: BaseStatsView {
     }
 
     private func formatSpeed(_ bytesPerSec: Double) -> (val: String, unit: String) {
-        let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
-        let val: Double
-        let tiers: [(threshold: Double, divisor: Double, unit: String)]
-        
-        switch mode {
-        case .auto:
-            val = bytesPerSec
-            tiers = [
-                (1000.0, 1.0, "B"),
-                (1024.0 * 1000.0, 1024.0, "K"),
-                (1024.0 * 1000000.0, 1048576.0, "M"),
-                (Double.infinity, 1073741824.0, "G"),
-            ]
-        case .binary:
-            val = bytesPerSec
-            tiers = [
-                (1024.0, 1.0, "B"),
-                (1024.0 * 1024.0, 1024.0, "Ki"),
-                (1024.0 * 1048576.0, 1048576.0, "Mi"),
-                (Double.infinity, 1073741824.0, "Gi"),
-            ]
-        case .decimal:
-            val = bytesPerSec
-            tiers = [
-                (1000.0, 1.0, "B"),
-                (1000.0 * 1000.0, 1000.0, "K"),
-                (1000.0 * 1000000.0, 1000000.0, "M"),
-                (Double.infinity, 1000000000.0, "G"),
-            ]
-        case .bits:
-            val = bytesPerSec * 8.0
-            tiers = [
-                (1000.0, 1.0, "b"),
-                (1000.0 * 1000.0, 1000.0, "K"),
-                (1000.0 * 1000000.0, 1000000.0, "M"),
-                (Double.infinity, 1000000000.0, "G"),
-            ]
-        }
-        
-        for tier in tiers {
-            if val < tier.threshold {
-                let scaled = val / tier.divisor
-                if scaled < 10.0 && tier.divisor > 1.0 {
-                    return (String(format: "%.1f", scaled), tier.unit)
-                } else {
-                    return (String(format: "%.0f", scaled), tier.unit)
-                }
-            }
-        }
-        return (String(format: "%.0f", val), tiers.last?.unit ?? "B")
+        return formatNetworkSpeed(bytesPerSec, shortUnit: true)
     }
 
     private func buildLine(val: String, unit: String, color: NSColor, dimAlpha: CGFloat,
