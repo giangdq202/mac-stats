@@ -220,6 +220,25 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         tempUnitItem.submenu = tempUnitSubmenu
         menu.addItem(tempUnitItem)
         
+        let netUnitSubmenu = NSMenu()
+        let netUnits: [(String, NetworkUnitMode)] = [
+            ("Auto (B, K, M, G)", .auto),
+            ("Binary (B, KiB, MiB, GiB)", .binary),
+            ("Decimal (B, KB, MB, GB)", .decimal),
+            ("Bits (bps, Kbps, Mbps)", .bits)
+        ]
+        for (label, mode) in netUnits {
+            let item = NSMenuItem(title: label, action: #selector(changeNetworkUnit(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            item.state = (networkUnitMode == mode) ? .on : .off
+            netUnitSubmenu.addItem(item)
+        }
+        
+        let netUnitItem = NSMenuItem(title: "Network Unit", action: nil, keyEquivalent: "")
+        netUnitItem.submenu = netUnitSubmenu
+        menu.addItem(netUnitItem)
+        
         menu.addItem(NSMenuItem.separator())
 
         // GitHub Link
@@ -388,6 +407,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue, forKey: "showCPUTemperature"); updateUIForSettingsChange() }
     }
     
+    private var networkUnitMode: NetworkUnitMode {
+        get { NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "networkUnitMode"); updateUIForSettingsChange() }
+    }
+    
     @objc private func toggleShowNetwork(_ sender: NSMenuItem) {
         showNetworkSpeeds.toggle()
     }
@@ -412,6 +436,12 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func changeTempUnit(_ sender: NSMenuItem) {
         if let unit = sender.representedObject as? String {
             tempUnit = unit
+        }
+    }
+    
+    @objc private func changeNetworkUnit(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? Int, let mode = NetworkUnitMode(rawValue: raw) {
+            networkUnitMode = mode
         }
     }
     
@@ -581,15 +611,48 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func formatNetworkSpeed(_ bytesPerSec: Double) -> String {
-        let speedTiers: [(threshold: Double, divisor: Double, unit: String)] = [
-            (1000.0,             1.0,              "B/s"),
-            (1000.0 * 1024.0,    1024.0,           "K/s"),
-            (1000.0 * 1048576.0, 1048576.0,        "M/s"),
-            (Double.infinity,    1073741824.0,      "G/s"),
-        ]
-        for tier in speedTiers {
-            if bytesPerSec < tier.threshold {
-                let scaled = bytesPerSec / tier.divisor
+        let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
+        let val: Double
+        let tiers: [(threshold: Double, divisor: Double, unit: String)]
+        
+        switch mode {
+        case .auto:
+            val = bytesPerSec
+            tiers = [
+                (1000.0, 1.0, "B/s"),
+                (1024.0 * 1000.0, 1024.0, "K/s"),
+                (1024.0 * 1000000.0, 1048576.0, "M/s"),
+                (Double.infinity, 1073741824.0, "G/s"),
+            ]
+        case .binary:
+            val = bytesPerSec
+            tiers = [
+                (1024.0, 1.0, "B/s"),
+                (1024.0 * 1024.0, 1024.0, "KiB/s"),
+                (1024.0 * 1048576.0, 1048576.0, "MiB/s"),
+                (Double.infinity, 1073741824.0, "GiB/s"),
+            ]
+        case .decimal:
+            val = bytesPerSec
+            tiers = [
+                (1000.0, 1.0, "B/s"),
+                (1000.0 * 1000.0, 1000.0, "KB/s"),
+                (1000.0 * 1000000.0, 1000000.0, "MB/s"),
+                (Double.infinity, 1000000000.0, "GB/s"),
+            ]
+        case .bits:
+            val = bytesPerSec * 8.0
+            tiers = [
+                (1000.0, 1.0, "bps"),
+                (1000.0 * 1000.0, 1000.0, "Kbps"),
+                (1000.0 * 1000000.0, 1000000.0, "Mbps"),
+                (Double.infinity, 1000000000.0, "Gbps"),
+            ]
+        }
+        
+        for tier in tiers {
+            if val < tier.threshold {
+                let scaled = val / tier.divisor
                 if scaled < 10.0 && tier.divisor > 1.0 {
                     return String(format: "%.1f %@", scaled, tier.unit)
                 } else {
@@ -597,7 +660,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        return String(format: "%.0f B/s", bytesPerSec)
+        return String(format: "%.0f %@", val, tiers.last?.unit ?? "B/s")
     }
 
     private static func formatCPU(_ percent: Double) -> String {

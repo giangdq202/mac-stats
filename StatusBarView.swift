@@ -14,6 +14,13 @@ public class BaseStatsView: NSView {
 }
 
 // MARK: - Color Utilities
+public enum NetworkUnitMode: Int {
+    case auto = 0
+    case binary = 1
+    case decimal = 2
+    case bits = 3
+}
+
 public enum AlertLevel: Int {
     case normal = 0
     case warning = 1
@@ -83,17 +90,10 @@ private let unitFont = NSFont.monospacedSystemFont(ofSize: 9.0, weight: .bold)
 private let cpuMemUnitFont = NSFont.systemFont(ofSize: 9.0, weight: .bold)
 private let tempValFont = NSFont.monospacedDigitSystemFont(ofSize: 10.0, weight: .bold)
 
-private let networkSectionWidth: CGFloat = 30.0
+private let networkSectionWidth: CGFloat = 36.0
 private let cpuMemWidthWithNetwork: CGFloat = 40.0
 private let cpuMemWidthWithoutNetwork: CGFloat = 38.0
 private let temperatureSectionWidth: CGFloat = 21.0
-
-private let speedTiers: [(threshold: Double, divisor: Double, unit: String)] = [
-    (1000.0,             1.0,              "B"),
-    (1000.0 * 1024.0,    1024.0,           "K"),
-    (1000.0 * 1048576.0, 1048576.0,        "M"),
-    (Double.infinity,    1073741824.0,      "G"),
-]
 
 // MARK: - Unified Status Bar View with Cached Rendering
 public class UnifiedStatsView: BaseStatsView {
@@ -131,6 +131,7 @@ public class UnifiedStatsView: BaseStatsView {
     private var lastMemGB: Double = -1
     private var lastTempC: Double = -1
     private var lastTempUnit: String = ""
+    private var lastMode: NetworkUnitMode = .auto
 
     // Cached appearance state
     private var cachedIsDark: Bool? = nil
@@ -164,9 +165,48 @@ public class UnifiedStatsView: BaseStatsView {
     }
 
     private func formatSpeed(_ bytesPerSec: Double) -> (val: String, unit: String) {
-        for tier in speedTiers {
-            if bytesPerSec < tier.threshold {
-                let scaled = bytesPerSec / tier.divisor
+        let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
+        let val: Double
+        let tiers: [(threshold: Double, divisor: Double, unit: String)]
+        
+        switch mode {
+        case .auto:
+            val = bytesPerSec
+            tiers = [
+                (1000.0, 1.0, "B"),
+                (1024.0 * 1000.0, 1024.0, "K"),
+                (1024.0 * 1000000.0, 1048576.0, "M"),
+                (Double.infinity, 1073741824.0, "G"),
+            ]
+        case .binary:
+            val = bytesPerSec
+            tiers = [
+                (1024.0, 1.0, "B"),
+                (1024.0 * 1024.0, 1024.0, "Ki"),
+                (1024.0 * 1048576.0, 1048576.0, "Mi"),
+                (Double.infinity, 1073741824.0, "Gi"),
+            ]
+        case .decimal:
+            val = bytesPerSec
+            tiers = [
+                (1000.0, 1.0, "B"),
+                (1000.0 * 1000.0, 1000.0, "K"),
+                (1000.0 * 1000000.0, 1000000.0, "M"),
+                (Double.infinity, 1000000000.0, "G"),
+            ]
+        case .bits:
+            val = bytesPerSec * 8.0
+            tiers = [
+                (1000.0, 1.0, "b"),
+                (1000.0 * 1000.0, 1000.0, "K"),
+                (1000.0 * 1000000.0, 1000000.0, "M"),
+                (Double.infinity, 1000000000.0, "G"),
+            ]
+        }
+        
+        for tier in tiers {
+            if val < tier.threshold {
+                let scaled = val / tier.divisor
                 if scaled < 10.0 && tier.divisor > 1.0 {
                     return (String(format: "%.1f", scaled), tier.unit)
                 } else {
@@ -174,7 +214,7 @@ public class UnifiedStatsView: BaseStatsView {
                 }
             }
         }
-        return (String(format: "%.0f", bytesPerSec), "B")
+        return (String(format: "%.0f", val), tiers.last?.unit ?? "B")
     }
 
     private func buildLine(val: String, unit: String, color: NSColor, dimAlpha: CGFloat,
@@ -194,8 +234,12 @@ public class UnifiedStatsView: BaseStatsView {
 
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let appearanceChanged = (isDark != cachedIsDark)
-        if appearanceChanged {
+        let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
+        let modeChanged = (mode != lastMode)
+        
+        if appearanceChanged || modeChanged {
             cachedIsDark = isDark
+            lastMode = mode
             cachedUpLine = nil; cachedDownLine = nil; cachedCpuLine = nil; cachedMemLine = nil; cachedTempLine = nil; cachedTempUnitLine = nil
             lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastTempC = -1; lastTempUnit = ""
         }
