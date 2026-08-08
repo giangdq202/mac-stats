@@ -42,9 +42,9 @@
 - [x] Enhanced Dropdown Menu (system summary, progress bars)
 - [x] Network Display Unit Setting
 - [x] Threshold Settings UI
+- [x] Compact display mode
 
 ### 🚧 In Progress
-- [ ] Compact display mode
 - [ ] (Future) Notification alerts
 - [ ] (Future) History sparkline chart
 
