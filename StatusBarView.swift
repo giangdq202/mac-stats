@@ -28,6 +28,12 @@ public enum ThresholdPreset: Int {
     case custom = 3
 }
 
+public enum DisplayMode: String {
+    case normal = "normal"
+    case compact = "compact"
+    case minimal = "minimal"
+}
+
 public enum AlertLevel: Int {
     case normal = 0
     case warning = 1
@@ -139,9 +145,29 @@ public class UnifiedStatsView: BaseStatsView {
     public var showTemperature: Bool = true
 
     public static func calculateWidth(showNetwork: Bool, showTemperature: Bool) -> CGFloat {
-        let netW: CGFloat = showNetwork ? networkSectionWidth : 0.0
-        let cpuMemW: CGFloat = showNetwork ? cpuMemWidthWithNetwork : cpuMemWidthWithoutNetwork
-        let tempW: CGFloat = showTemperature ? temperatureSectionWidth : 0.0
+        let mode = DisplayMode(rawValue: UserDefaults.standard.string(forKey: "displayMode") ?? "normal") ?? .normal
+        let isNet = showNetwork && mode != .minimal
+        let isTemp = showTemperature && mode != .minimal
+        
+        let netW: CGFloat
+        let cpuMemW: CGFloat
+        let tempW: CGFloat
+        
+        switch mode {
+        case .normal:
+            netW = isNet ? 36.0 : 0.0
+            cpuMemW = isNet ? 40.0 : 38.0
+            tempW = isTemp ? 21.0 : 0.0
+        case .compact:
+            netW = isNet ? 28.0 : 0.0
+            cpuMemW = isNet ? 32.0 : 28.0
+            tempW = isTemp ? 14.0 : 0.0
+        case .minimal:
+            netW = 0.0
+            cpuMemW = 28.0
+            tempW = 0.0
+        }
+        
         return netW + cpuMemW + tempW
     }
 
@@ -162,6 +188,7 @@ public class UnifiedStatsView: BaseStatsView {
     private var lastTempUnit: String = ""
     private var lastMode: NetworkUnitMode = .auto
     private var lastPreset: ThresholdPreset = .balanced
+    private var lastDisplayMode: DisplayMode = .normal
 
     // Cached appearance state
     private var cachedIsDark: Bool? = nil
@@ -248,14 +275,17 @@ public class UnifiedStatsView: BaseStatsView {
     }
 
     private func buildLine(val: String, unit: String, color: NSColor, dimAlpha: CGFloat,
-                           valFont: NSFont, uFont: NSFont) -> NSAttributedString {
+                           valFont: NSFont, uFont: NSFont, space: Bool = true) -> NSAttributedString {
         let s = NSMutableAttributedString()
         s.append(NSAttributedString(string: val, attributes: [
             .font: valFont, .foregroundColor: color, .paragraphStyle: rightAlignStyle
         ]))
-        s.append(NSAttributedString(string: " " + unit, attributes: [
-            .font: uFont, .foregroundColor: color.withAlphaComponent(dimAlpha), .paragraphStyle: rightAlignStyle
-        ]))
+        if !unit.isEmpty {
+            let spaceStr = space ? " " : ""
+            s.append(NSAttributedString(string: spaceStr + unit, attributes: [
+                .font: uFont, .foregroundColor: color.withAlphaComponent(dimAlpha), .paragraphStyle: rightAlignStyle
+            ]))
+        }
         return s
     }
 
@@ -270,10 +300,14 @@ public class UnifiedStatsView: BaseStatsView {
         let preset = ThresholdPreset(rawValue: UserDefaults.standard.integer(forKey: "thresholdPreset")) ?? .balanced
         let presetChanged = (preset != lastPreset)
         
-        if appearanceChanged || modeChanged || presetChanged {
+        let dMode = DisplayMode(rawValue: UserDefaults.standard.string(forKey: "displayMode") ?? "normal") ?? .normal
+        let dModeChanged = (dMode != lastDisplayMode)
+        
+        if appearanceChanged || modeChanged || presetChanged || dModeChanged {
             cachedIsDark = isDark
             lastMode = mode
             lastPreset = preset
+            lastDisplayMode = dMode
             cachedUpLine = nil; cachedDownLine = nil; cachedCpuLine = nil; cachedMemLine = nil; cachedTempLine = nil; cachedTempUnitLine = nil
             lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastTempC = -1; lastTempUnit = ""
         }
@@ -285,20 +319,40 @@ public class UnifiedStatsView: BaseStatsView {
         let line2Y: CGFloat = 1.0
         let lineH: CGFloat = 11.0
         
-        let netW: CGFloat = showNetwork ? networkSectionWidth : 0.0
-        let cpuMemW: CGFloat = showNetwork ? cpuMemWidthWithNetwork : cpuMemWidthWithoutNetwork
-        let tempW: CGFloat = showTemperature ? temperatureSectionWidth : 0.0
+        let isNet = showNetwork && dMode != .minimal
+        let isTemp = showTemperature && dMode != .minimal
+        
+        let netW: CGFloat
+        let cpuMemW: CGFloat
+        let tempW: CGFloat
+        let space = (dMode == .normal)
+        
+        switch dMode {
+        case .normal:
+            netW = isNet ? 36.0 : 0.0
+            cpuMemW = isNet ? 40.0 : 38.0
+            tempW = isTemp ? 21.0 : 0.0
+        case .compact:
+            netW = isNet ? 28.0 : 0.0
+            cpuMemW = isNet ? 32.0 : 28.0
+            tempW = isTemp ? 14.0 : 0.0
+        case .minimal:
+            netW = 0.0
+            cpuMemW = 28.0
+            tempW = 0.0
+        }
 
         var currentX: CGFloat = 0.0
 
-        if showNetwork {
+        if isNet {
             // Upload — only rebuild attributed string if raw value changed
             if cachedUpLine == nil || _uploadBPS != lastUpBPS {
                 lastUpBPS = _uploadBPS
                 let (upVal, upUnit) = formatSpeed(_uploadBPS)
+                let upUnitStr = dMode == .compact ? String(upUnit.prefix(1)) : upUnit
                 let upColor = colorForNetworkSpeed(_uploadBPS, isDark: isDark, defaultColor: textColor)
-                cachedUpLine = buildLine(val: upVal, unit: upUnit, color: upColor, dimAlpha: dimAlpha,
-                                         valFont: font, uFont: unitFont)
+                cachedUpLine = buildLine(val: upVal, unit: upUnitStr, color: upColor, dimAlpha: dimAlpha,
+                                         valFont: font, uFont: unitFont, space: space)
             }
             cachedUpLine!.draw(in: CGRect(x: currentX, y: line1Y, width: netW, height: lineH))
 
@@ -306,9 +360,10 @@ public class UnifiedStatsView: BaseStatsView {
             if cachedDownLine == nil || _downloadBPS != lastDownBPS {
                 lastDownBPS = _downloadBPS
                 let (downVal, downUnit) = formatSpeed(_downloadBPS)
+                let downUnitStr = dMode == .compact ? String(downUnit.prefix(1)) : downUnit
                 let downColor = colorForNetworkSpeed(_downloadBPS, isDark: isDark, defaultColor: textColor)
-                cachedDownLine = buildLine(val: downVal, unit: downUnit, color: downColor, dimAlpha: dimAlpha,
-                                           valFont: font, uFont: unitFont)
+                cachedDownLine = buildLine(val: downVal, unit: downUnitStr, color: downColor, dimAlpha: dimAlpha,
+                                           valFont: font, uFont: unitFont, space: space)
             }
             cachedDownLine!.draw(in: CGRect(x: currentX, y: line2Y, width: netW, height: lineH))
             
@@ -321,7 +376,7 @@ public class UnifiedStatsView: BaseStatsView {
             let cpuVal = String(format: "%.0f", _cpuPercent)
             let cpuColor = colorForUsage(_cpuPercent, isDark: isDark, metricPrefix: "cpu")
             cachedCpuLine = buildLine(val: cpuVal, unit: "%", color: cpuColor, dimAlpha: dimAlpha,
-                                       valFont: font, uFont: cpuMemUnitFont)
+                                       valFont: font, uFont: cpuMemUnitFont, space: space)
         }
         cachedCpuLine!.draw(in: CGRect(x: currentX, y: line1Y, width: cpuMemW, height: lineH))
 
@@ -331,13 +386,13 @@ public class UnifiedStatsView: BaseStatsView {
             let memKey = String(format: "%.1f", _memGB)
             let memColor = colorForUsage(_memPercent, isDark: isDark, metricPrefix: "mem")
             cachedMemLine = buildLine(val: memKey, unit: "G", color: memColor, dimAlpha: dimAlpha,
-                                       valFont: font, uFont: cpuMemUnitFont)
+                                       valFont: font, uFont: cpuMemUnitFont, space: space)
         }
         cachedMemLine!.draw(in: CGRect(x: currentX, y: line2Y, width: cpuMemW, height: lineH))
         
         currentX += cpuMemW
 
-        if showTemperature {
+        if isTemp {
             // Temperature
             let tempVal: String
             if _cpuTemperature > 0 {
@@ -364,7 +419,8 @@ public class UnifiedStatsView: BaseStatsView {
                 
                 // Unit line (Bottom, standard font, dimmed)
                 let s2 = NSMutableAttributedString()
-                s2.append(NSAttributedString(string: _cpuTemperature > 0 ? "°" + _tempUnit : "", attributes: [
+                let unitStr = _cpuTemperature > 0 ? (dMode == .compact ? "°" : "°" + _tempUnit) : ""
+                s2.append(NSAttributedString(string: unitStr, attributes: [
                     .font: cpuMemUnitFont, .foregroundColor: tempColor.withAlphaComponent(dimAlpha), .paragraphStyle: rightAlignStyle
                 ]))
                 cachedTempUnitLine = s2
