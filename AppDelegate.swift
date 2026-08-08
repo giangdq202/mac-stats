@@ -276,24 +276,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         netUnitItem.submenu = netUnitSubmenu
         menu.addItem(netUnitItem)
         
-        let displayModeSubmenu = NSMenu()
-        let displayModes: [(String, DisplayMode)] = [
-            ("Normal", .normal),
-            ("Compact", .compact),
-            ("Minimal (CPU+RAM only)", .minimal)
-        ]
-        for (label, mode) in displayModes {
-            let item = NSMenuItem(title: label, action: #selector(changeDisplayMode(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = mode.rawValue
-            item.state = (displayMode == mode) ? .on : .off
-            displayModeSubmenu.addItem(item)
-        }
-        
-        let displayModeItem = NSMenuItem(title: "Display Mode", action: nil, keyEquivalent: "")
-        displayModeItem.submenu = displayModeSubmenu
-        menu.addItem(displayModeItem)
-        
         menu.addItem(NSMenuItem.separator())
 
         // GitHub Link
@@ -471,11 +453,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "networkUnitMode"); updateUIForSettingsChange() }
     }
     
-    private var displayMode: DisplayMode {
-        get { DisplayMode(rawValue: UserDefaults.standard.string(forKey: "displayMode") ?? "normal") ?? .normal }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: "displayMode"); updateUIForSettingsChange() }
-    }
-    
     @objc private func toggleShowNetwork(_ sender: NSMenuItem) {
         showNetworkSpeeds.toggle()
     }
@@ -506,12 +483,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func changeNetworkUnit(_ sender: NSMenuItem) {
         if let raw = sender.representedObject as? Int, let mode = NetworkUnitMode(rawValue: raw) {
             networkUnitMode = mode
-        }
-    }
-    
-    @objc private func changeDisplayMode(_ sender: NSMenuItem) {
-        if let raw = sender.representedObject as? String, let mode = DisplayMode(rawValue: raw) {
-            displayMode = mode
         }
     }
     
