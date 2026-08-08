@@ -2,6 +2,11 @@ import Foundation
 import MachO
 import IOKit
 
+public struct TempCluster {
+    public let name: String
+    public let temperature: Double
+}
+
 public struct CPUStats {
     public var usagePercent: Double = 0.0
     public var userPercent: Double = 0.0
@@ -9,6 +14,7 @@ public struct CPUStats {
     public var idlePercent: Double = 0.0
     public var coreCount: Int = 0
     public var temperature: Double = 0.0
+    public var tempClusters: [TempCluster] = []
 }
 
 public struct MemoryStats {
@@ -62,8 +68,8 @@ public class StatsEngine {
     private var prevNetTime: CFAbsoluteTime = 0
     private var cachedActiveInterface: String = "en0"
     
-    // Active temperature keys cached after startup scan
-    private var activeTempKeys: [String] = []
+    // Active temperature keys grouped by cluster (e.g. CPU, GPU)
+    private var activeTempKeys: [String: [String]] = [:]
 
     public init() {
         var pageSize: vm_size_t = 4096
@@ -73,36 +79,22 @@ public class StatsEngine {
         self.activeTempKeys = scanActiveTempKeys()
     }
     
-    private func scanActiveTempKeys() -> [String] {
+    private func scanActiveTempKeys() -> [String: [String]] {
         let smc = SMC.shared
         func isActive(_ key: String) -> Bool {
             guard let val = smc.getValue(key) else { return false }
             return val > 15.0 && val < 110.0
         }
 
-        // Apple Silicon per-core / cluster sensors, averaged together.
-        let appleSiliconKeys = [
-            // Base/General M1/M2/M3/M4/M5 CPU keys
-            "Tc0a", "Tc0b", "Tc0x", "Tc0z",
-            "Tc1a", "Tc1b", "Tc1x", "Tc1z",
-            "Tc2a", "Tc2b", "Tc2x", "Tc2z",
-            "Tc3a", "Tc3b", "Tc3x", "Tc3z",
-            "Tc4a", "Tc4b", "Tc4x", "Tc4z",
-            "Tc5a", "Tc5b", "Tc5x", "Tc5z",
-            "Tc6a", "Tc6b", "Tc6x", "Tc6z",
-            "Tc7a", "Tc7b", "Tc7x", "Tc7z",
-            "Tc8a", "Tc8b", "Tc8x", "Tc8z",
-            "Tc9a", "Tc9b", "Tc9x", "Tc9z",
-            "Tcaa", "Tcab", "Tcax", "Tcaz",
-            
-            // M3/M4/M5 Efficiency cores
-            "Te05", "Te0L", "Te0P", "Te0S", "Te09", "Te0H", "Te0a", "Te0b", "Te0x", "Te0z",
-            "Te3a", "Te3b", "Te3x", "Te3z",
-            
-            // M3/M4 Performance cores
+        var groups: [String: [String]] = [
+            "P-Cores": [],
+            "E-Cores": [],
+            "GPU": [],
+            "Other CPU": []
+        ]
+
+        let pCoreKeys = [
             "Tf04", "Tf09", "Tf0A", "Tf0B", "Tf0D", "Tf0E", "Tf44", "Tf49", "Tf4A", "Tf4B", "Tf4D", "Tf4E",
-            
-            // M1/M2 Pro/Max/Ultra and general Tp keys
             "Tp01", "Tp05", "Tp09", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b", "Tp0e", "Tp0T", "Tp0V", "Tp0Y",
             "Tp1h", "Tp1t", "Tp1p", "Tp1l",
             "Tp2a", "Tp2b", "Tp2x", "Tp2z",
@@ -114,27 +106,37 @@ public class StatsEngine {
             "Tp9a", "Tp9b", "Tp9x", "Tp9z"
         ]
         
-        let appleSiliconActive = appleSiliconKeys.filter(isActive)
-        if !appleSiliconActive.isEmpty { return appleSiliconActive }
-
-        // --- Intel Macs ---
-        // Prefer the per-core die sensors, averaged together (mirrors the
-        // Apple Silicon path above). Both upper- and lower-case suffixes
-        // appear depending on the model; only one set is ever active.
-        let intelCoreKeys = [
-            "TC0C", "TC1C", "TC2C", "TC3C", "TC4C", "TC5C", "TC6C", "TC7C", "TC8C", "TC9C",
-            "TC0c", "TC1c", "TC2c", "TC3c", "TC4c", "TC5c", "TC6c", "TC7c", "TC8c", "TC9c"
+        let eCoreKeys = [
+            "Te05", "Te0L", "Te0P", "Te0S", "Te09", "Te0H", "Te0a", "Te0b", "Te0x", "Te0z",
+            "Te3a", "Te3b", "Te3x", "Te3z"
         ]
-        let intelCoreActive = intelCoreKeys.filter(isActive)
-        if !intelCoreActive.isEmpty { return intelCoreActive }
 
-        // Fall back to a single summary sensor, in order of preference:
-        // on-die diode, package, proximity, then heatsink.
-        let intelFallbackKeys = ["TC0D", "TC0E", "TC0F", "TCAD", "TC0P", "TC0H"]
-        if let key = intelFallbackKeys.first(where: isActive) {
-            return [key]
-        }
-        return []
+        let otherCpuKeys = [
+            "Tc0a", "Tc0b", "Tc0x", "Tc0z",
+            "Tc1a", "Tc1b", "Tc1x", "Tc1z",
+            "Tc2a", "Tc2b", "Tc2x", "Tc2z",
+            "Tc3a", "Tc3b", "Tc3x", "Tc3z",
+            "Tc4a", "Tc4b", "Tc4x", "Tc4z",
+            "Tc5a", "Tc5b", "Tc5x", "Tc5z",
+            "Tc6a", "Tc6b", "Tc6x", "Tc6z",
+            "Tc7a", "Tc7b", "Tc7x", "Tc7z",
+            "Tc8a", "Tc8b", "Tc8x", "Tc8z",
+            "Tc9a", "Tc9b", "Tc9x", "Tc9z",
+            "Tcaa", "Tcab", "Tcax", "Tcaz"
+        ]
+
+        let gpuKeys = [
+            "Tg05", "Tg0D", "Tg0L", "Tg0P", "Tg0S", "Tg0j", "Tg1x", "Tg2x", "Tg3x", "Tg4x",
+            "TG0D", "TG0H", "TG0P" // keep a few common just in case
+        ]
+
+        groups["P-Cores"] = pCoreKeys.filter(isActive)
+        groups["E-Cores"] = eCoreKeys.filter(isActive)
+        groups["Other CPU"] = otherCpuKeys.filter(isActive)
+        groups["GPU"] = gpuKeys.filter(isActive)
+        
+        // Remove empty groups
+        return groups.filter { !$0.value.isEmpty }
     }
 
     deinit {
@@ -195,19 +197,38 @@ public class StatsEngine {
         self.prevCpuInfo = cpuInfo
         self.prevCpuInfoCount = cpuInfoCount
         
-        // Calculate CPU average temperature
+        // Calculate CPU average temperature and cluster temperatures
         if !activeTempKeys.isEmpty {
-            var sum: Double = 0.0
-            var count = 0
+            var totalSum: Double = 0.0
+            var totalCount = 0
             let smc = SMC.shared
-            for key in activeTempKeys {
-                if let val = smc.getValue(key), val > 15.0 && val < 110.0 {
-                    sum += val
-                    count += 1
+            
+            for (groupName, keys) in activeTempKeys {
+                var groupSum: Double = 0.0
+                var groupCount = 0
+                for key in keys {
+                    if let val = smc.getValue(key), val > 15.0 && val < 110.0 {
+                        groupSum += val
+                        groupCount += 1
+                        
+                        // We only include CPU cores in the overall average to keep
+                        // the menu bar temperature consistent with actual CPU heat
+                        if groupName != "GPU" {
+                            totalSum += val
+                            totalCount += 1
+                        }
+                    }
+                }
+                if groupCount > 0 {
+                    stats.tempClusters.append(TempCluster(name: groupName, temperature: groupSum / Double(groupCount)))
                 }
             }
-            if count > 0 {
-                stats.temperature = sum / Double(count)
+            
+            // Sort clusters for consistent display (P-Cores, E-Cores, GPU...)
+            stats.tempClusters.sort { $0.name < $1.name }
+            
+            if totalCount > 0 {
+                stats.temperature = totalSum / Double(totalCount)
             }
         }
         
