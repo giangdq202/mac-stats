@@ -40,9 +40,9 @@
 - [x] Custom color thresholds (warn/critical levels)
 - [x] Discrete 4-level colors (Green/Yellow/Orange/Red)
 - [x] Enhanced Dropdown Menu (system summary, progress bars)
+- [x] Network Display Unit Setting
 
 ### 🚧 In Progress
-- [ ] Network Display Unit Setting
 - [ ] Threshold Settings UI
 - [ ] Compact display mode
 - [ ] (Future) Notification alerts
