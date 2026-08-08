@@ -146,12 +146,14 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         customViews.append((tempItem, { [weak self] width in 
             guard let self = self else { return (NSView(), {}) }
             let t = self.currentCpuStats.temperature
-            let valStr = t > 0 ? String(format: "%.0f°%@", t, self.tempUnit) : "--"
+            let displayTemp = (t > 0 && self.tempUnit == "F") ? t * 1.8 + 32.0 : t
+            let valStr = t > 0 ? String(format: "%.0f°%@", displayTemp, self.tempUnit) : "--"
             let (view, updateBlock) = Self.inlineRow(label: "Temp", valueText: valStr, isTemp: true, tempVal: t, width: width)
             let updater = { [weak self, weak view] in
                 guard let self = self, let view = view else { return }
                 let tNew = self.currentCpuStats.temperature
-                let newStr = tNew > 0 ? String(format: "%.0f°%@", tNew, self.tempUnit) : "--"
+                let displayTNew = (tNew > 0 && self.tempUnit == "F") ? tNew * 1.8 + 32.0 : tNew
+                let newStr = tNew > 0 ? String(format: "%.0f°%@", displayTNew, self.tempUnit) : "--"
                 let isDark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
                 let color = (tNew > 0) ? colorForTemperature(tNew, isDark: isDark) : .secondaryLabelColor
                 updateBlock(newStr, color)
