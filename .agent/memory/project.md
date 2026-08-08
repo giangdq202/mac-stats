@@ -1,43 +1,43 @@
-# Project Memory — mac-stats Fork
+# Project Memory - MeMo Fork
 
-## 🏗️ Architectural Decisions
+## Architectural Decisions
 
 ### 2026-08-07: SDK Fix
-- **Vấn đề**: Swift 6.2.4 không tương thích với default SDK symlink
-- **Giải pháp**: Hardcode `SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"` trong `build.sh`
-- **Lý do**: Swift 6.2.4 (swiftlang-6.2.4.1.4) cần SDK khớp với compiler version
+- **Issue**: Swift 6.2.4 is incompatible with default SDK symlink
+- **Solution**: Hardcode `SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"` in `build.sh`
+- **Reason**: Swift 6.2.4 (swiftlang-6.2.4.1.4) requires SDK matching the compiler version
 
 ### 2026-08-08: Rebrand & Customization
-- **App Name**: Đổi từ MacStats sang MeMo (Menu Monitor)
-- **Credit**: Ghi công `openhoangnc/mac-stats`, thêm modifier `giangdq202`
-- **Icon**: Thay đổi thành speedometer icon hiện đại
-- **Release Scripts**: Fix `install.sh` download zip trỏ đúng repo giangdq202 và rename build artifacts sang `MeMo.zip` trong `release.yml`
+- **App Name**: Renamed from MacStats to MeMo (Menu Monitor)
+- **Credit**: Credit `openhoangnc/mac-stats`, add modifier `giangdq202`
+- **Icon**: Changed to modern speedometer icon
+- **Release Scripts**: Fix `install.sh` download zip to point to correct giangdq202 repo and rename build artifacts to `MeMo.zip` in `release.yml`
 
 ### 2026-08-07: Fork Setup
-- **Nguồn gốc**: Fork từ openhoangnc/mac-stats (MIT License)
-- **Mục tiêu**: Personalization — custom thresholds, compact display
-- **Approach**: Modify trực tiếp source files, không dùng Swift Package Manager
-- **Build**: Universal binary (arm64 + x86_64) qua `build.sh`
+- **Origin**: Forked from openhoangnc/mac-stats (MIT License)
+- **Goal**: Personalization - custom thresholds, compact display
+- **Approach**: Modify source files directly, no Swift Package Manager
+- **Build**: Universal binary (arm64 + x86_64) via `build.sh`, later restricted to arm64 only.
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
-| Dependency | Version | Ghi chú |
+| Dependency | Version | Notes |
 |---|---|---|
-| Swift | 6.2.4 | Cài qua Xcode Command Line Tools |
+| Swift | 6.2.4 | Installed via Xcode Command Line Tools |
 | macOS SDK | 15.5 | Path: `/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk` |
 | AppKit | system | UI framework |
 | IOKit | system | SMC temperature sensor |
 | Foundation | system | Core utilities |
 
-**Zero external dependencies** — không CocoaPods, không SPM packages.
+**Zero external dependencies** - no CocoaPods, no SPM packages.
 
 ---
 
-## 🎯 Features Roadmap
+## Features Roadmap
 
-### ✅ Done
+### Done
 - [x] Fork setup & build working
 - [x] AGENTS.md + .agent folder structure
 - [x] VS Code configurations (tasks, launch, settings)
@@ -53,15 +53,15 @@
 - [x] Dynamic Dropdown Menu & Update Interval (ms)
 - [x] Rebrand app to MeMo, add speedometer icon
 
-### 🐞 Bugfix Backlog (from Deep Inspection 2026-08-08)
-- [x] **P1** — Fahrenheit trong menu hiện giá trị Celsius gắn nhãn °F → PR #8
-- [x] **P2** — RAM color cache không invalidate khi `_memPercent` thay đổi → PR #9
-- [x] **P3** — Menu updaters bị clear ngay sau performClick → PR #10
-- [x] **P4** — Network spike giả khi interface disconnect/reconnect → PR #11
-- [x] **P5+P7** — sp78 signed parse + SMC fallback float remove → PR #12
-- [x] **P6** — Deduplicate formatSpeed/formatNetworkSpeed → PR #13
+### Bugfix Backlog (from Deep Inspection 2026-08-08)
+- [x] **P1** - Fahrenheit in menu shows Celsius value labeled F -> PR 8
+- [x] **P2** - RAM color cache not invalidated when `_memPercent` changes -> PR 9
+- [x] **P3** - Menu updaters cleared right after performClick -> PR 10
+- [x] **P4** - Fake Network spike when interface disconnects/reconnects -> PR 11
+- [x] **P5+P7** - sp78 signed parse + SMC fallback float remove -> PR 12
+- [x] **P6** - Deduplicate formatSpeed/formatNetworkSpeed -> PR 13
 
-### 🚧 In Progress
+### In Progress
 - [x] Apple Silicon only app (arm64 build)
 - [x] Temperature grouped by clusters (P-Cores, E-Cores, GPU) in Dropdown
 - [ ] (Future) Notification alerts
@@ -69,45 +69,45 @@
 
 ---
 
-## 🐛 Known Issues
+## Known Issues
 
 | Issue | Status | Workaround |
 |---|---|---|
-| SDK version mismatch | ✅ Fixed | Hardcoded SDK path in build.sh |
-| Network: ignores VPN/utun | Open | By design — chỉ "en" interfaces |
-| Top Processes: subprocess overhead | Open | Acceptable — only on menu open |
-| Timer fired 2x per interval | ✅ Fixed | Timer now uses unscheduled Timer() + RunLoop.add(.common) |
-| CPU delta integer overflow | ✅ Fixed | Cast Int32→Int64 before subtraction, clamp to 0 |
-| SMC conn=0 wasted syscalls | ✅ Fixed | guard conn != 0 in getValue() |
-| updateInterval not persisted | ✅ Fixed | Now stored in UserDefaults |
-| Fahrenheit in menu shows Celsius value | ✅ Fixed | PR #8 — added C→F conversion |
-| RAM color stale when % crosses threshold | ✅ Fixed | PR #9 — added memPercent to cache key |
-| Menu values freeze while open | ✅ Fixed | PR #10 — defer cleanup to menuDidClose |
-| Network spike on interface change | ✅ Fixed | PR #11 — clamp delta to 0 |
-| sp78 signed parse incorrect | ✅ Fixed | PR #12 — use Int16 big-endian |
-| SMC fallback float false positive | ✅ Fixed | PR #12 — removed unsafe default case |
-| Duplicated format logic | ✅ Fixed | PR #13 — shared formatNetworkSpeed() |
+| SDK version mismatch | Fixed | Hardcoded SDK path in build.sh |
+| Network: ignores VPN/utun | Open | By design - only "en" interfaces |
+| Top Processes: subprocess overhead | Open | Acceptable - only on menu open |
+| Timer fired 2x per interval | Fixed | Timer now uses unscheduled Timer() + RunLoop.add(.common) |
+| CPU delta integer overflow | Fixed | Cast Int32->Int64 before subtraction, clamp to 0 |
+| SMC conn=0 wasted syscalls | Fixed | guard conn != 0 in getValue() |
+| updateInterval not persisted | Fixed | Now stored in UserDefaults |
+| Fahrenheit in menu shows Celsius value | Fixed | PR 8 - added C->F conversion |
+| RAM color stale when % crosses threshold | Fixed | PR 9 - added memPercent to cache key |
+| Menu values freeze while open | Fixed | PR 10 - defer cleanup to menuDidClose |
+| Network spike on interface change | Fixed | PR 11 - clamp delta to 0 |
+| sp78 signed parse incorrect | Fixed | PR 12 - use Int16 big-endian |
+| SMC fallback float false positive | Fixed | PR 12 - removed unsafe default case |
+| Duplicated format logic | Fixed | PR 13 - shared formatNetworkSpeed() |
 
 ---
 
-## 📝 Learning Notes (Swift Concepts Learned)
+## Learning Notes (Swift Concepts Learned)
 
-*Section này ghi lại những gì owner đã học được qua từng feature*
+*This section records what the owner has learned through each feature*
 
 ### Session 1 (2026-08-07)
-- Hiểu cấu trúc app: main.swift → AppDelegate → StatsEngine + StatusBarView
-- Biết cách build bằng `swiftc` không cần Xcode
-- Hiểu `UserDefaults` là nơi lưu settings app
-- Hiểu `@objc` và `#selector` là cách AppKit gọi functions
+- App architecture: main.swift -> AppDelegate -> StatsEngine + StatusBarView
+- Build using `swiftc` without Xcode
+- `UserDefaults` for storing app settings
+- `@objc` and `#selector` for AppKit function calls
 
 ### Session 2 (2026-08-08)
-- `NSMenuDelegate.menuDidClose` — cách detect khi dropdown menu đóng
-- Cache invalidation strategy: mọi giá trị ảnh hưởng đến render đều phải là cache key
-- `sp78` SMC format: signed fixed-point, dùng `Int16` big-endian
-- Free function vs static method: dùng free function cho shared logic giữa các class
-- Network counter: không giả định wrap-around khi tổng nhiều interface
+- `NSMenuDelegate.menuDidClose` - how to detect when dropdown menu closes
+- Cache invalidation strategy: all values affecting render must be cache keys
+- `sp78` SMC format: signed fixed-point, uses `Int16` big-endian
+- Free function vs static method: use free function for shared logic between classes
+- Network counter: do not assume wrap-around when summing multiple interfaces
 
 ---
 
-## 🔄 Build History
-*(Auto-updated bởi post-build.sh hook)*
+## Build History
+*(Auto-updated by post-build.sh hook)*
