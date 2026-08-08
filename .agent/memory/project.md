@@ -53,6 +53,14 @@
 - [x] Dynamic Dropdown Menu & Update Interval (ms)
 - [x] Rebrand app to MeMo, add speedometer icon
 
+### 🐞 Bugfix Backlog (from Deep Inspection 2026-08-08)
+- [x] **P1** — Fahrenheit trong menu hiện giá trị Celsius gắn nhãn °F → PR #8
+- [x] **P2** — RAM color cache không invalidate khi `_memPercent` thay đổi → PR #9
+- [x] **P3** — Menu updaters bị clear ngay sau performClick → PR #10
+- [x] **P4** — Network spike giả khi interface disconnect/reconnect → PR #11
+- [x] **P5+P7** — sp78 signed parse + SMC fallback float remove → PR #12
+- [x] **P6** — Deduplicate formatSpeed/formatNetworkSpeed → PR #13
+
 ### 🚧 In Progress
 - [ ] (Future) Notification alerts
 - [ ] (Future) History sparkline chart
@@ -70,6 +78,13 @@
 | CPU delta integer overflow | ✅ Fixed | Cast Int32→Int64 before subtraction, clamp to 0 |
 | SMC conn=0 wasted syscalls | ✅ Fixed | guard conn != 0 in getValue() |
 | updateInterval not persisted | ✅ Fixed | Now stored in UserDefaults |
+| Fahrenheit in menu shows Celsius value | ✅ Fixed | PR #8 — added C→F conversion |
+| RAM color stale when % crosses threshold | ✅ Fixed | PR #9 — added memPercent to cache key |
+| Menu values freeze while open | ✅ Fixed | PR #10 — defer cleanup to menuDidClose |
+| Network spike on interface change | ✅ Fixed | PR #11 — clamp delta to 0 |
+| sp78 signed parse incorrect | ✅ Fixed | PR #12 — use Int16 big-endian |
+| SMC fallback float false positive | ✅ Fixed | PR #12 — removed unsafe default case |
+| Duplicated format logic | ✅ Fixed | PR #13 — shared formatNetworkSpeed() |
 
 ---
 
@@ -82,6 +97,13 @@
 - Biết cách build bằng `swiftc` không cần Xcode
 - Hiểu `UserDefaults` là nơi lưu settings app
 - Hiểu `@objc` và `#selector` là cách AppKit gọi functions
+
+### Session 2 (2026-08-08)
+- `NSMenuDelegate.menuDidClose` — cách detect khi dropdown menu đóng
+- Cache invalidation strategy: mọi giá trị ảnh hưởng đến render đều phải là cache key
+- `sp78` SMC format: signed fixed-point, dùng `Int16` big-endian
+- Free function vs static method: dùng free function cho shared logic giữa các class
+- Network counter: không giả định wrap-around khi tổng nhiều interface
 
 ---
 
