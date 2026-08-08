@@ -2,10 +2,10 @@
 set -e
 
 REPO="openhoangnc/mac-stats"
-APP_NAME="MacStats"
+APP_NAME="MeMo"
 INSTALL_DIR="/Applications"
 APP_PATH="${INSTALL_DIR}/${APP_NAME}.app"
-PLIST_PATH="${HOME}/Library/LaunchAgents/com.openhoangnc.macstats.plist"
+PLIST_PATH="${HOME}/Library/LaunchAgents/com.giangdq202.memo.plist"
 
 # Check OS
 if [ "$(uname -s)" != "Darwin" ]; then
@@ -44,7 +44,7 @@ do_uninstall() {
 
     # 5. Remove Preferences
     echo "--> Clearing application preferences..."
-    rm -f "${HOME}/Library/Preferences/com.openhoangnc.macstats.plist"
+    rm -f "${HOME}/Library/Preferences/com.giangdq202.memo.plist"
 
     echo "=== Uninstallation Complete! ${APP_NAME} has been completely removed. ==="
     exit 0

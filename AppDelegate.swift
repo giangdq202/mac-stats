@@ -96,9 +96,9 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
         // --- About Header ---
         let versionStr = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
-        let versionItem = NSMenuItem(title: "MacStats v\(versionStr)", action: nil, keyEquivalent: "")
+        let versionItem = NSMenuItem(title: "MeMo v\(versionStr)", action: nil, keyEquivalent: "")
         versionItem.isEnabled = false
-        versionItem.attributedTitle = NSAttributedString(string: "MacStats v\(versionStr)", attributes: [
+        versionItem.attributedTitle = NSAttributedString(string: "MeMo v\(versionStr)", attributes: [
             .foregroundColor: NSColor.tertiaryLabelColor,
             .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         ])
@@ -286,7 +286,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
         
         // Quit
-        let quitItem = NSMenuItem(title: "Quit MacStats", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit MeMo", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
@@ -315,7 +315,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             if status == .enabled { return true }
         }
         
-        let plistPath = NSString(string: "~/Library/LaunchAgents/com.openhoangnc.macstats.plist").expandingTildeInPath
+        let plistPath = NSString(string: "~/Library/LaunchAgents/com.giangdq202.memo.plist").expandingTildeInPath
         if FileManager.default.fileExists(atPath: plistPath) {
             return true
         }
@@ -341,7 +341,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        let plistPath = NSString(string: "~/Library/LaunchAgents/com.openhoangnc.macstats.plist").expandingTildeInPath
+        let plistPath = NSString(string: "~/Library/LaunchAgents/com.giangdq202.memo.plist").expandingTildeInPath
         let uid = getuid()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
@@ -377,11 +377,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        let plistPath = NSString(string: "~/Library/LaunchAgents/com.openhoangnc.macstats.plist").expandingTildeInPath
+        let plistPath = NSString(string: "~/Library/LaunchAgents/com.giangdq202.memo.plist").expandingTildeInPath
         if enabled {
             let execPath = Bundle.main.bundlePath.hasSuffix(".app")
-                ? "\(Bundle.main.bundlePath)/Contents/MacOS/MacStats"
-                : "/Applications/MacStats.app/Contents/MacOS/MacStats"
+                ? "\(Bundle.main.bundlePath)/Contents/MacOS/MeMo"
+                : "/Applications/MeMo.app/Contents/MacOS/MeMo"
             
             let plistContent = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -389,7 +389,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             <plist version="1.0">
             <dict>
                 <key>Label</key>
-                <string>com.openhoangnc.macstats</string>
+                <string>com.giangdq202.memo</string>
                 <key>ProgramArguments</key>
                 <array>
                     <string>\(execPath)</string>

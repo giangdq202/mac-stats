@@ -1,5 +1,6 @@
-# MacStats 📊
+# MeMo (Menu Monitor) 📊
 
+> **Phát triển bởi giangdq202. Dựa trên mã nguồn gốc mac-stats của openhoangnc.**
 > Ứng dụng theo dõi trạng thái hệ thống gọn nhẹ trên thanh Menu macOS, được viết hoàn toàn bằng Swift. Giúp bạn xem nhanh mức sử dụng CPU, dung lượng RAM, tốc độ mạng và nhiệt độ CPU theo thời gian thực.
 
 🌐 [English](README.md) | [Tiếng Việt](README.vi.md) | [简体中文](README.zh.md) | [日本語](README.ja.md)

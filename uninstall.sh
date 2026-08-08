@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-APP_NAME="MacStats"
+APP_NAME="MeMo"
 APP_PATH="/Applications/${APP_NAME}.app"
-PLIST_PATH="${HOME}/Library/LaunchAgents/com.openhoangnc.macstats.plist"
+PLIST_PATH="${HOME}/Library/LaunchAgents/com.giangdq202.memo.plist"
 
 echo "=== Uninstalling ${APP_NAME} ==="
 
@@ -35,6 +35,6 @@ fi
 
 # 5. Remove Preferences
 echo "--> Clearing application preferences..."
-rm -f "${HOME}/Library/Preferences/com.openhoangnc.macstats.plist"
+rm -f "${HOME}/Library/Preferences/com.giangdq202.memo.plist"
 
 echo "=== Uninstallation Complete! ${APP_NAME} has been completely removed. ==="

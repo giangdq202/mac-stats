@@ -10,7 +10,7 @@ if CommandLine.arguments.contains("--cleanup-login-item") ||
 // Prevent duplicate instances: terminate any other running copies of this app
 // so only one menu bar item is ever present. The freshly launched process wins,
 // which lets reinstalls/updates seamlessly replace an already-running instance.
-let bundleID = Bundle.main.bundleIdentifier ?? "com.openhoangnc.macstats"
+let bundleID = Bundle.main.bundleIdentifier ?? "com.giangdq202.memo"
 let currentPID = ProcessInfo.processInfo.processIdentifier
 let otherInstances = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
     .filter { $0.processIdentifier != currentPID }
