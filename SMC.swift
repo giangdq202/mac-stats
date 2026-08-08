@@ -168,14 +168,11 @@ public class SMC {
                     return Double(fval)
                 }
             case "sp78":
-                let intValue = Double(Int(val.bytes[0]) * 256 + Int(val.bytes[1]))
-                return intValue / 256.0
+                // sp78 = signed fixed-point: 1 sign + 8 integer + 7 fractional bits.
+                // Bytes are big-endian; use Int16 to sign-extend correctly.
+                let raw = Int16(val.bytes[0]) << 8 | Int16(val.bytes[1])
+                return Double(raw) / 256.0
             default:
-                if val.dataSize == 4 {
-                    if let fval = Float(val.bytes) {
-                        return Double(fval)
-                    }
-                }
                 return nil
             }
         }
