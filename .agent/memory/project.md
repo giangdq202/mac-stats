@@ -7,6 +7,10 @@
 - **Solution**: Hardcode `SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"` in `build.sh`
 - **Reason**: Swift 6.2.4 (swiftlang-6.2.4.1.4) requires SDK matching the compiler version
 
+### 2026-08-08: Split CI/CD Pipelines
+- **CI Workflow**: Created `ci.yml` to automatically build project on `push` and `pull_request` to `main`.
+- **CD Workflow**: Modified `release.yml` to only trigger on `tags` (`v*`) and manual `workflow_dispatch`. Prevents release spam on minor commits.
+
 ### 2026-08-08: Rebrand & Customization
 - **App Name**: Renamed from MacStats to MeMo (Menu Monitor)
 - **Credit**: Credit `openhoangnc/mac-stats`, add modifier `giangdq202`
