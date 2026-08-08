@@ -3,32 +3,30 @@
 > **Phát triển bởi giangdq202. Dựa trên mã nguồn gốc mac-stats của openhoangnc.**
 > Ứng dụng theo dõi trạng thái hệ thống gọn nhẹ trên thanh Menu macOS, được viết hoàn toàn bằng Swift. Giúp bạn xem nhanh mức sử dụng CPU, dung lượng RAM, tốc độ mạng và nhiệt độ CPU theo thời gian thực.
 
-🌐 [English](README.md) | [Tiếng Việt](README.vi.md) | [简体中文](README.zh.md) | [日本語](README.ja.md)
+🌐 [English](README.md) | [Tiếng Việt](README.vi.md)
 
 ![macOS 11.0+](https://img.shields.io/badge/macOS-11.0%2B-blue?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange?logo=swift)
 ![License](https://img.shields.io/badge/License-MIT-green)
-
-![MacStats Screenshot](screenshot.png)
 
 ---
 
 ## ⚡ Bắt đầu nhanh
 
 ### 📦 Cài đặt chỉ với 1 dòng lệnh
-Copy và chạy dòng lệnh dưới đây trong Terminal để tải, giải nén và cài đặt **MacStats** thẳng vào thư mục `/Applications`:
+Copy và chạy dòng lệnh dưới đây trong Terminal để tải, giải nén và cài đặt **MeMo** thẳng vào thư mục `/Applications`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/giangdq202/mac-stats/main/install.sh | bash
 ```
 
 ---
 
 ### 🗑️ Gỡ cài đặt hoàn toàn
-Để tắt MacStats, xoá cấu hình khởi động cùng hệ thống, xoá thiết lập của người dùng và xoá ứng dụng khỏi `/Applications`:
+Để tắt MeMo, xoá cấu hình khởi động cùng hệ thống, xoá thiết lập của người dùng và xoá ứng dụng khỏi `/Applications`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/giangdq202/mac-stats/main/uninstall.sh | bash
 ```
 
 ---
@@ -49,7 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/uninstal
   - **Update Interval**: Chọn tốc độ làm mới dữ liệu (1 giây, 2 giây hoặc 5 giây).
   - **Temperature Unit**: Chuyển đổi giữa độ C và độ F.
   - **GitHub Repository**: Link nhanh về trang GitHub của project.
-  - **Quit MacStats**: Thoát app.
+  - **Quit MeMo**: Thoát app.
 - 🧠 **Cảm biến nhiệt độ SMC thông minh**: Tự động dò tìm các cảm biến nhiệt SMC tương thích với cả chip Intel lẫn Apple Silicon (M1/M2/M3/M4/M5). App sẽ check nhiệt độ các nhân P-core, E-core... và tính ra nhiệt độ trung bình chuẩn xác nhất theo thời gian thực.
 - ⚡ **Tối ưu cực hạn cho hiệu năng & bộ nhớ**:
   - Ẩn mình hoàn toàn như một app nền (`LSUIElement`) – không hiện dưới Dock, không cản trở lúc bạn Command-Tab.
@@ -67,7 +65,7 @@ Nếu bạn thích tự tay clone và build code:
 
 1. Clone repo về máy:
    ```bash
-   git clone https://github.com/openhoangnc/mac-stats.git
+   git clone https://github.com/giangdq202/mac-stats.git
    cd mac-stats
    ```
 
@@ -79,7 +77,7 @@ Nếu bạn thích tự tay clone và build code:
    Hoặc chỉ build gói `.app` tại chỗ mà không cài đặt:
    ```bash
    ./build.sh
-   open MacStats.app
+   open MeMo.app
    ```
 
 > **Lưu ý:** Lệnh một dòng ở phần Cài đặt nhanh sẽ tải bản build sẵn mới nhất, còn `./install.sh` chạy từ repo đã clone luôn build và cài đặt mã nguồn cục bộ của bạn.
@@ -91,7 +89,7 @@ Nếu bạn thích tự tay clone và build code:
 Codebase có sẵn workflow tại `.github/workflows/release.yml`.
 
 - **Tự động tăng version**: Mỗi lần code được push lên nhánh chính (hoặc trigger bằng tay), version sẽ tự động nhảy số (`v1.0.0` → `v1.0.1`).
-- **Build & Đóng gói tự động**: Compile ra app macOS, nén thành `MacStats.zip`, đẩy lên GitHub Release kèm theo changelog.
+- **Build & Đóng gói tự động**: Compile ra app macOS, nén thành `MeMo.zip`, đẩy lên GitHub Release kèm theo changelog.
 
 ---
 

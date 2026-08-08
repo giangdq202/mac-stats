@@ -3,23 +3,21 @@
 > **Developed by giangdq202. Forked from openhoangnc/mac-stats.**
 > A lightweight, zero-Xcode macOS menu bar system monitor written purely in Swift. Keeps track of your CPU usage, Memory consumption, Network speeds, and CPU temperature in real-time.—right at a glance.
 
-🌐 [English](README.md) | [Tiếng Việt](README.vi.md) | [简体中文](README.zh.md) | [日本語](README.ja.md)
+🌐 [English](README.md) | [Tiếng Việt](README.vi.md)
 
 ![macOS 11.0+](https://img.shields.io/badge/macOS-11.0%2B-blue?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange?logo=swift)
 ![License](https://img.shields.io/badge/License-MIT-green)
-
-![MacStats Screenshot](screenshot.png)
 
 ---
 
 ## ⚡ Quick Start
 
 ### 📦 One-Line Download & Install
-Just copy and paste this command into your Terminal. It will automatically download, extract, and install **MacStats** directly into your `/Applications` folder:
+Just copy and paste this command into your Terminal. It will automatically download, extract, and install **MeMo** directly into your `/Applications` folder:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/giangdq202/mac-stats/main/install.sh | bash
 ```
 
 ---
@@ -28,7 +26,7 @@ curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/install.
 Want to remove it completely? This command safely stops the app, removes it from your startup items, clears your user preferences, and deletes the app bundle:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/giangdq202/mac-stats/main/uninstall.sh | bash
 ```
 
 ---
@@ -49,7 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/openhoangnc/mac-stats/main/uninstal
   - **Update Interval**: Customize how often data refreshes (1s, 2s, or 5s).
   - **Temperature Unit**: Switch effortlessly between Celsius and Fahrenheit.
   - **GitHub Repository**: Direct link to the source code.
-  - **Quit MacStats**: Safely close the app.
+  - **Quit MeMo**: Safely close the app.
 - 🧠 **Dynamic SMC Temperature Scanning**: On startup, it automatically discovers active SMC temperature sensors for both Intel and Apple Silicon (M1/M2/M3/M4/M5) chips—including efficiency cores, performance cores, and general sensors—to calculate a highly accurate real-time average.
 - ⚡ **Deep Performance & Memory Optimizations**:
   - Runs entirely as a background accessory (`LSUIElement`). It stays out of your Dock and won't clutter your Command-Tab app switcher.
@@ -67,7 +65,7 @@ If you prefer to compile it yourself from source:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/openhoangnc/mac-stats.git
+   git clone https://github.com/giangdq202/mac-stats.git
    cd mac-stats
    ```
 
@@ -82,7 +80,7 @@ If you prefer to compile it yourself from source:
    Or just build the `.app` bundle in place without installing:
    ```bash
    ./build.sh
-   open MacStats.app
+   open MeMo.app
    ```
 
 > **Note:** The one-line command in [Quick Start](#-one-line-download--install) downloads the latest prebuilt release, whereas `./install.sh` run from a cloned repo always builds and installs your local source.
@@ -94,7 +92,7 @@ If you prefer to compile it yourself from source:
 The project is fully automated via `.github/workflows/release.yml`.
 
 - **Automatic Version Bumping**: Pushing to the main branch (or triggering manually) automatically bumps the version number (e.g., `v1.0.0` → `v1.0.1`).
-- **Automated Releases**: The workflow compiles the native macOS app bundle, compresses it into `MacStats.zip`, and automatically attaches it to a new GitHub Release.
+- **Automated Releases**: The workflow compiles the native macOS app bundle, compresses it into `MeMo.zip`, and automatically attaches it to a new GitHub Release.
 
 ---
 
