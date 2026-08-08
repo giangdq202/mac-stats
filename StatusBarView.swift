@@ -21,13 +21,6 @@ public enum NetworkUnitMode: Int {
     case bits = 3
 }
 
-public enum ThresholdPreset: Int {
-    case conservative = 0
-    case balanced = 1
-    case aggressive = 2
-    case custom = 3
-}
-
 public enum DisplayMode: String {
     case normal = "normal"
     case compact = "compact"
@@ -66,39 +59,25 @@ public func levelForValue(_ value: Double, warn: Double, high: Double, crit: Dou
 }
 
 public func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String) -> NSColor {
-    let preset = ThresholdPreset(rawValue: UserDefaults.standard.integer(forKey: "thresholdPreset")) ?? .balanced
-    let warn, high, crit: Double
-    switch preset {
-    case .conservative:
-        warn = 50.0; high = 65.0; crit = 80.0
-    case .balanced:
+    let warn: Double
+    let high: Double
+    let crit: Double
+    
+    if metricPrefix == "mem" {
+        warn = 65.0; high = 80.0; crit = 90.0
+    } else {
+        // CPU
         warn = 60.0; high = 75.0; crit = 90.0
-    case .aggressive:
-        warn = 70.0; high = 85.0; crit = 95.0
-    case .custom:
-        warn = UserDefaults.standard.object(forKey: "\(metricPrefix)WarnThreshold") as? Double ?? 60.0
-        high = UserDefaults.standard.object(forKey: "\(metricPrefix)HighThreshold") as? Double ?? 75.0
-        crit = UserDefaults.standard.object(forKey: "\(metricPrefix)CriticalThreshold") as? Double ?? 90.0
     }
+    
     let level = levelForValue(percent, warn: warn, high: high, crit: crit)
     return discreteColor(level: level, isDark: isDark)
 }
 
 public func colorForTemperature(_ temp: Double, isDark: Bool) -> NSColor {
-    let preset = ThresholdPreset(rawValue: UserDefaults.standard.integer(forKey: "thresholdPreset")) ?? .balanced
-    let warn, high, crit: Double
-    switch preset {
-    case .conservative:
-        warn = 50.0; high = 60.0; crit = 70.0
-    case .balanced:
-        warn = 55.0; high = 70.0; crit = 85.0
-    case .aggressive:
-        warn = 60.0; high = 80.0; crit = 95.0
-    case .custom:
-        warn = UserDefaults.standard.object(forKey: "tempWarnThreshold") as? Double ?? 55.0
-        high = UserDefaults.standard.object(forKey: "tempHighThreshold") as? Double ?? 70.0
-        crit = UserDefaults.standard.object(forKey: "tempCriticalThreshold") as? Double ?? 85.0
-    }
+    let warn = 55.0
+    let high = 70.0
+    let crit = 85.0
     let level = levelForValue(temp, warn: warn, high: high, crit: crit)
     return discreteColor(level: level, isDark: isDark)
 }
@@ -187,7 +166,6 @@ public class UnifiedStatsView: BaseStatsView {
     private var lastTempC: Double = -1
     private var lastTempUnit: String = ""
     private var lastMode: NetworkUnitMode = .auto
-    private var lastPreset: ThresholdPreset = .balanced
     private var lastDisplayMode: DisplayMode = .normal
 
     // Cached appearance state
@@ -297,16 +275,12 @@ public class UnifiedStatsView: BaseStatsView {
         let mode = NetworkUnitMode(rawValue: UserDefaults.standard.integer(forKey: "networkUnitMode")) ?? .auto
         let modeChanged = (mode != lastMode)
         
-        let preset = ThresholdPreset(rawValue: UserDefaults.standard.integer(forKey: "thresholdPreset")) ?? .balanced
-        let presetChanged = (preset != lastPreset)
-        
         let dMode = DisplayMode(rawValue: UserDefaults.standard.string(forKey: "displayMode") ?? "normal") ?? .normal
         let dModeChanged = (dMode != lastDisplayMode)
         
-        if appearanceChanged || modeChanged || presetChanged || dModeChanged {
+        if appearanceChanged || modeChanged || dModeChanged {
             cachedIsDark = isDark
             lastMode = mode
-            lastPreset = preset
             lastDisplayMode = dMode
             cachedUpLine = nil; cachedDownLine = nil; cachedCpuLine = nil; cachedMemLine = nil; cachedTempLine = nil; cachedTempUnitLine = nil
             lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastTempC = -1; lastTempUnit = ""
