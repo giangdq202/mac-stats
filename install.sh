@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO="giangdq202/mac-stats"
+REPO="giangdq202/memo"
 APP_NAME="MeMo"
 INSTALL_DIR="/Applications"
 APP_PATH="${INSTALL_DIR}/${APP_NAME}.app"

@@ -524,7 +524,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     
     @objc private func openGitHubPage() {
-        if let url = URL(string: "https://github.com/openhoangnc/mac-stats") {
+        if let url = URL(string: "https://github.com/giangdq202/memo") {
             NSWorkspace.shared.open(url)
         }
     }

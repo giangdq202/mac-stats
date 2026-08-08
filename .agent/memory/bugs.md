@@ -1,83 +1,83 @@
-# Bug Log — mac-stats Project
+# Bug Log - MeMo Project
 
-> AI cập nhật file này sau mỗi bug được tìm và fix.
-> Format chuẩn giúp học từ lỗi cũ.
+> AI updates this file after every bug is found and fixed.
+> Standard format helps learn from past mistakes.
 
 ---
 
 ## Template
 
 ```markdown
-## [YYYY-MM-DD] Bug: <tên ngắn gọn>
+## [YYYY-MM-DD] Bug: <short name>
 
-**Triệu chứng**: [Mô tả điều gì xảy ra sai]
-**Nguyên nhân**: [Root cause]
-**Fix**: [Cách đã fix]
-**File & Line**: [`filename.swift` dòng X]
-**Lesson**: [Rút ra gì cho lần sau]
+**Symptom**: [Describe what went wrong]
+**Root cause**: [Root cause]
+**Fix**: [How it was fixed]
+**File & Line**: [`filename.swift` line X]
+**Lesson**: [What to learn for next time]
 ```
 
 ---
 
 ## 2026-08-07: SDK Version Mismatch
 
-**Triệu chứng**: `bash build.sh` báo lỗi:
+**Symptom**: `bash build.sh` reports error:
 ```
 error: failed to build module 'Swift'; this SDK is not supported by the compiler
 ```
 
-**Nguyên nhân**: Swift 6.2.4 (compiler mới) nhưng `xcode-select` trỏ đến SDK cũ hơn.
-SDK symlink (`MacOSX.sdk`) trỏ vào version không match với compiler.
+**Root cause**: Swift 6.2.4 (new compiler) but `xcode-select` points to an older SDK.
+The SDK symlink (`MacOSX.sdk`) points to a version that doesn't match the compiler.
 
-**Fix**: Hardcode SDK path trong `build.sh`:
+**Fix**: Hardcode SDK path in `build.sh`:
 ```bash
 SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
-COMMON_FLAGS=(-Osize -wmo -module-name MacStats -sdk "$SDK_PATH" ...)
+COMMON_FLAGS=(-Osize -wmo -module-name MeMo -sdk "$SDK_PATH" ...)
 ```
 
-**File**: `build.sh` dòng 21-22
+**File**: `build.sh` lines 21-22
 
 **Lesson**: 
-- Khi update Command Line Tools, luôn kiểm tra `swift --version` vs SDK version
-- `xcrun --show-sdk-path --sdk macosx` → xem SDK đang active
-- `ls /Library/Developer/CommandLineTools/SDKs/` → xem SDKs có sẵn
+- When updating Command Line Tools, always check `swift --version` vs SDK version.
+- `xcrun --show-sdk-path --sdk macosx` -> view active SDK
+- `ls /Library/Developer/CommandLineTools/SDKs/` -> view available SDKs
 
 ---
 
 ## 2026-08-07: Timer Double-Fire
 
-**Triệu chứng**: `updateStats()` chạy gấp đôi tần suất mong muốn → CPU waste, battery drain
-**Nguyên nhân**: `scheduledTimer` auto-adds timer vào RunLoop mode `.default`. Code sau đó lại `RunLoop.current.add(timer!, forMode: .common)` → timer registered in both modes. Vì `.common` bao gồm `.default`, timer fires 2x.
-**Fix**: Dùng `Timer(timeInterval:...)` (unscheduled) rồi `RunLoop.current.add(t, forMode: .common)` — chỉ 1 lần.
-**File**: `AppDelegate.swift` dòng 56-66
-**Lesson**: `scheduledTimer` = tạo + add RunLoop. Nếu muốn custom mode, dùng `Timer()` constructor + manual add.
+**Symptom**: `updateStats()` runs twice as often as intended -> CPU waste, battery drain.
+**Root cause**: `scheduledTimer` auto-adds the timer to the `.default` RunLoop mode. The code then calls `RunLoop.current.add(timer!, forMode: .common)` -> timer registered in both modes. Since `.common` includes `.default`, timer fires 2x.
+**Fix**: Use `Timer(timeInterval:...)` (unscheduled) then `RunLoop.current.add(t, forMode: .common)` - only once.
+**File**: `AppDelegate.swift` lines 56-66
+**Lesson**: `scheduledTimer` = create + add RunLoop. If a custom mode is needed, use `Timer()` constructor + manual add.
 
 ---
 
 ## 2026-08-07: CPU Delta Integer Overflow
 
-**Triệu chứng**: CPU hiển thị 100% giả hoặc giá trị rác khi counter wrap around
-**Nguyên nhân**: `cpuInfo[x] - prevCpuInfo[x]` là phép trừ `Int32`. Khi counter overflow, kết quả âm, cast sang `UInt64` → giá trị khổng lồ (~2^63).
-**Fix**: Cast mỗi operand sang `Int64` trước khi trừ, rồi `max(0, delta)` để clamp.
-**File**: `StatsEngine.swift` dòng 168-174
-**Lesson**: Khi trừ unsigned/signed integers rồi cast type, luôn widen type trước khi trừ.
+**Symptom**: CPU shows fake 100% or garbage value when counter wraps around.
+**Root cause**: `cpuInfo[x] - prevCpuInfo[x]` is an `Int32` subtraction. When counter overflows, result is negative, cast to `UInt64` -> huge value (~2^63).
+**Fix**: Cast each operand to `Int64` before subtraction, then `max(0, delta)` to clamp.
+**File**: `StatsEngine.swift` lines 168-174
+**Lesson**: When subtracting unsigned/signed integers then casting types, always widen the type before subtraction.
 
 ---
 
 ## 2026-08-07: SMC Connection Not Guarded
 
-**Triệu chứng**: Khi SMC init fail (conn=0), mỗi 2 giây vẫn gọi 100+ syscalls vô ích vào kernel
-**Nguyên nhân**: `SMC.init()` fail silently (return sớm, conn vẫn = 0). `getValue()` không kiểm tra conn trước khi gọi `IOConnectCallStructMethod`.
-**Fix**: Thêm `guard conn != 0 else { return nil }` ở đầu `getValue()`.
-**File**: `SMC.swift` dòng 149
-**Lesson**: Khi init có thể fail, mọi method public phải guard state validity.
+**Symptom**: When SMC init fails (conn=0), 100+ useless syscalls to the kernel happen every 2 seconds.
+**Root cause**: `SMC.init()` fails silently (returns early, conn remains 0). `getValue()` does not check conn before calling `IOConnectCallStructMethod`.
+**Fix**: Add `guard conn != 0 else { return nil }` at the top of `getValue()`.
+**File**: `SMC.swift` line 149
+**Lesson**: When init can fail, all public methods must guard state validity.
 
 ---
 
-## 2026-08-07: ~~Float Byte-Order in SMC~~ (REVERTED — Đây là fix sai)
+## 2026-08-07: ~~Float Byte-Order in SMC~~ (REVERTED - This was an incorrect fix)
 
-**Triệu chứng ban đầu**: Giả định rằng SMC trả bytes big-endian cho `"flt "` type
-**Fix ban đầu**: Swap bytes [3,2,1,0] trước khi `load(as: Float.self)`
-**Hậu quả**: Temperature hiện `--` vì swap làm giá trị rác → rơi ngoài range 15-110°C → bị lọc bỏ
-**Root cause thực tế**: SMC trả `flt ` type theo **host byte order** (little-endian), KHÔNG phải big-endian. Code gốc đã đúng.
-**Lesson**: KHÔNG giả định byte order mà chưa test thực tế. `sp78` dùng big-endian (manual parse), nhưng `flt ` dùng host-endian. Mỗi data type có convention riêng.
+**Initial Symptom**: Assumed SMC returns big-endian bytes for `"flt "` type.
+**Initial Fix**: Swapped bytes [3,2,1,0] before `load(as: Float.self)`.
+**Consequence**: Temperature shows `--` because swap creates garbage values -> falls outside 15-110C range -> filtered out.
+**Actual Root Cause**: SMC returns `flt ` type in **host byte order** (little-endian), NOT big-endian. Original code was correct.
+**Lesson**: DO NOT assume byte order without actual testing. `sp78` uses big-endian (manual parse), but `flt ` uses host-endian. Each data type has its own convention.

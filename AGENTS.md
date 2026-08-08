@@ -1,185 +1,187 @@
-# AGENTS.md — mac-stats (Personal Fork)
+# AGENTS.md — MeMo (Personal Fork)
 
-> **README cho tất cả AI agents** (Antigravity, Claude Code, Cursor, Codex, OpenCode, GitHub Copilot...).
-> Đây là nguồn sự thật duy nhất. Đọc toàn bộ file này trước khi làm bất cứ điều gì.
-
----
-
-## 🎯 Project Context
-
-**mac-stats** là macOS Menu Bar Monitor app, Swift thuần, không Xcode.
-Fork cá nhân từ [openhoangnc/mac-stats](https://github.com/openhoangnc/mac-stats) (MIT License).
-
-**Owner**: Người dùng cá nhân, đang học Swift qua việc làm thực tế.
-**Remote repo**: Đã cấu hình trên GitHub (`origin`) với **Branch Protection** (Bắt buộc PR, Squash Merge, Không force-push).
+> README for all AI agents (Antigravity, Claude Code, Cursor, Codex, OpenCode, GitHub Copilot...).
+> This is the single source of truth. Read this entire file before doing anything.
 
 ---
 
-## 🚨 MANDATORY WORKFLOW — ĐÂY LÀ QUY TRÌNH BẮT BUỘC
+## Project Context
 
-**Mọi AI agent đều phải tuân theo workflow này, không có ngoại lệ:**
+**MeMo** is a macOS Menu Bar Monitor app, pure Swift, no Xcode.
+Personal fork from [openhoangnc/mac-stats] (now located at giangdq202/memo) (MIT License).
+
+**Owner**: Personal user, learning Swift through practical projects.
+**Remote repo**: Configured on GitHub (`origin`) with **Branch Protection** (PR required, Squash Merge, No force-push).
+
+---
+
+## MANDATORY WORKFLOW — THIS IS A STRICT PROCESS
+
+**Every AI agent must follow this workflow, no exceptions:**
 
 ```
-1. GRILL    → Hỏi developer đến khi hiểu rõ mong muốn thực sự
-2. PLAN     → Grill tiếp cho đến khi chốt được plan cụ thể
-3. BRANCH   → Tạo nhánh git TRƯỚC KHI viết bất kỳ dòng code nào
-4. IMPLEMENT→ Implement từng bước nhỏ, giải thích tại sao trước khi code
-5. BUILD    → Tự chạy `bash build.sh` sau mỗi thay đổi
-6. TEST     → Xác nhận app chạy đúng
-7. COMMIT   → Commit với Conventional Commits format
-8. MEMORY   → Cập nhật `.agent/memory/` sau mỗi commit
-9. PR & MERGE → Push branch, mở PR và Squash Merge vào main
+1. GRILL    -> Ask the developer until the true intent is fully understood
+2. PLAN     -> Continue grilling until a specific plan is finalized
+3. BRANCH   -> Create a git branch BEFORE writing any code
+4. IMPLEMENT-> Implement in small steps, explain why before coding
+5. BUILD    -> Automatically run `bash build.sh` after each change
+6. TEST     -> Confirm the app works correctly
+7. COMMIT   -> Commit using Conventional Commits format
+8. MEMORY   -> Update `.agent/memory/` after every commit
+9. PR & MERGE -> Push branch, open PR, and Squash Merge into main
 ```
 
-> ⚠️ **KHÔNG BAO GIỜ code trực tiếp trên nhánh `main`.**
-> ⚠️ **KHÔNG BAO GIỜ bỏ qua bước GRILL — dù yêu cầu có vẻ đơn giản.**
+> DO NOT EVER code directly on the `main` branch.
+> DO NOT EVER skip the GRILL step — even if the request seems simple.
 
-Chi tiết xem: [`.agent/skills/feature-planning-workflow/SKILL.md`](.agent/skills/feature-planning-workflow/SKILL.md)
-
----
-
-## 🛑 CRITICAL CHANGES — DỪNG VÀ HỎI USER
-
-Nếu một thay đổi thuộc bất kỳ loại nào dưới đây, **AI phải dừng lại và hỏi user trước**:
-
-- Sửa `SMC.swift` (low-level IOKit, rất dễ break)
-- Sửa `Info.plist` (đặc biệt `LSUIElement`)
-- Xóa hoặc thay đổi cấu trúc `.app` bundle
-- Thay đổi deployment target (macOS 11 là minimum)
-- Thay đổi SDK path trong `build.sh`
-- Thay AppKit bằng SwiftUI hoặc thêm bất kỳ external dependency
-- Bất kỳ hành động nào tác động lên filesystem ngoài project folder
-- Bất kỳ hành động nào tác động lên máy local (install, uninstall, registry)
+Details: [`.agent/skills/feature-planning-workflow/SKILL.md`](.agent/skills/feature-planning-workflow/SKILL.md)
 
 ---
 
-## 🗣️ Giao Tiếp
+## CRITICAL CHANGES — STOP AND ASK USER
 
-- **Giải thích**: Tiếng Việt — tại sao làm thế này
-- **Code & Comments**: Tiếng Anh
-- **Phong cách**: Giải thích `tại sao` trước, rồi mới đưa ra code
-- **Ambiguity**: Grill cho đến khi chốt plan, không tự quyết định
-- **Code mới**: Sạch, không comment thừa — nhưng giải thích rõ ràng trong chat
+If a change falls into any of the categories below, **the AI must stop and ask the user first**:
+
+- Modifying `SMC.swift` (low-level IOKit, very easy to break)
+- Modifying `Info.plist` (especially `LSUIElement`)
+- Deleting or changing the `.app` bundle structure
+- Changing the deployment target (macOS 11 is minimum)
+- Changing the SDK path in `build.sh`
+- Replacing AppKit with SwiftUI or adding any external dependency
+- Any action affecting the filesystem outside the project folder
+- Any action affecting the local machine (install, uninstall, registry)
 
 ---
 
-## 🗂️ Cấu Trúc Project
+## Communication
+
+- **Explanation**: English only.
+- **Code & Comments**: English only.
+- **Style**: Explain `why` first, then provide the code.
+- **Ambiguity**: Grill until a plan is finalized, do not make assumptions.
+- **New Code**: Clean, no redundant comments — but clearly explained in the chat.
+- **Language & Formatting**: All scripts, code, and markdown files in this repository MUST be in English. NO emojis or icons are allowed.
+
+---
+
+## Project Structure
 
 ```
-mac-stats/
+memo/
 ├── main.swift          # Entry point: CLI flags, duplicate prevention
 ├── AppDelegate.swift   # App lifecycle, timer, menu, settings
 ├── StatsEngine.swift   # Data collection: CPU/RAM/Network/Processes
 ├── StatusBarView.swift # UI rendering: menu bar display
-├── SMC.swift           # ⛔ Temperature via IOKit/SMC — KHÔNG SỬA
-├── build.sh            # Build script (không cần Xcode)
+├── SMC.swift           # Temperature via IOKit/SMC — DO NOT MODIFY
+├── build.sh            # Build script (no Xcode needed)
 ├── install.sh          # One-line install
 ├── uninstall.sh        # Clean uninstall
-├── Info.plist          # Bundle metadata — CẨN THẬN KHI SỬA
-├── AGENTS.md           # ← File này
+├── Info.plist          # Bundle metadata — BE CAREFUL WHEN MODIFYING
+├── AGENTS.md           # <- This file
 └── .agent/
-    ├── rules/          # Quy tắc development
+    ├── rules/          # Development rules
     ├── hooks/          # Pre/post build scripts
-    ├── skills/         # Hướng dẫn implement từng tính năng
-    └── memory/         # Ghi nhớ giữa các sessions
+    ├── skills/         # Instructions for implementing features
+    └── memory/         # Memory across sessions
 ```
 
 ---
 
-## ⚙️ Build & Run
+## Build & Run
 
 ```bash
-# Build (universal binary arm64 + x86_64)
+# Build (arm64 binary)
 bash build.sh
 
-# Mở app
-open MacStats.app
+# Open app
+open MeMo.app
 
-# Build + install vào /Applications
+# Build + install into /Applications
 ./install.sh
 
 # Uninstall
 ./uninstall.sh
 ```
 
-> **SDK**: `/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk` — đã hardcode trong `build.sh`.
+> **SDK**: `/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk` — hardcoded in `build.sh`.
 
 ---
 
-## 📐 Coding Standards
+## Coding Standards
 
-- **Swift 5.x** (không dùng Swift 6 strict concurrency)
-- Ưu tiên `guard let` over `if let`
-- `// MARK: -` để phân vùng code
-- Tên biến: `camelCase`, tên hàm: `động từ + danh từ`
+- **Swift 5.x** (do not use Swift 6 strict concurrency)
+- Prefer `guard let` over `if let`
+- `// MARK: -` to organize code sections
+- Variable names: `camelCase`, function names: `verb + noun`
 
-Chi tiết xem: [`.agent/rules/swift-style.md`](.agent/rules/swift-style.md)
-
----
-
-## 🚫 KHÔNG được làm (Hard Rules)
-
-- ❌ Thêm third-party dependencies
-- ❌ Dùng Xcode project files (`.xcodeproj`)
-- ❌ Import SwiftUI
-- ❌ Sửa `SMC.swift`
-- ❌ Thay đổi `LSUIElement=true` trong `Info.plist`
-- ❌ Commit build artifacts (`MacStats.app`, `*_arm64`, `*_x86_64`)
-- ❌ Viết code block dài quá 50 dòng trong một lần
-- ❌ Code trực tiếp trên nhánh `main`
-- ❌ Push trực tiếp lên nhánh `main` (mọi code phải qua PR)
+Details: [`.agent/rules/swift-style.md`](.agent/rules/swift-style.md)
 
 ---
 
-## ✅ Definition of Done
+## Hard Rules (DO NOT DO)
 
-Một feature được coi là hoàn thành khi:
-1. `bash build.sh` không có error/warning mới
-2. App launch, icon xuất hiện trên menu bar
-3. Tính năng hoạt động đúng như plan đã chốt
-4. Settings persist sau khi restart app
-5. Dark mode và Light mode đều hiển thị đúng
-6. Đã commit với Conventional Commits message
-7. Đã cập nhật `.agent/memory/` sau commit
-8. Đã push nhánh lên remote, mở PR và Squash Merge vào `main`
-
----
-
-## 🎨 Personalization Goals (Priority Order)
-
-1. **Custom Color Thresholds** — Discrete colors (xanh/vàng/đỏ) với ngưỡng tùy chỉnh
-2. **Compact Display** — Tốn ít pixel nhất trên menu bar
-3. **Expand later** — Notification alerts, history chart, GPU... (chưa cần ngay)
+- DO NOT add third-party dependencies
+- DO NOT use Xcode project files (`.xcodeproj`)
+- DO NOT import SwiftUI
+- DO NOT modify `SMC.swift`
+- DO NOT change `LSUIElement=true` in `Info.plist`
+- DO NOT commit build artifacts (`MeMo.app`, `*_bin`, etc.)
+- DO NOT write code blocks longer than 50 lines at once
+- DO NOT code directly on the `main` branch
+- DO NOT push directly to the `main` branch (all code must go through PR)
+- DO NOT use emojis or icons anywhere in the project.
 
 ---
 
-## 🔑 Key Files Reference
+## Definition of Done
 
-| Muốn thay đổi gì | Sửa file nào | Dòng quan trọng |
+A feature is considered done when:
+1. `bash build.sh` has no new errors/warnings
+2. App launches, icon appears on the menu bar
+3. Feature works exactly as the finalized plan
+4. Settings persist after app restart
+5. Dark mode and Light mode both render correctly
+6. Committed with Conventional Commits message
+7. Updated `.agent/memory/` after commit
+8. Branch pushed to remote, PR opened, and Squash Merged into `main`
+
+---
+
+## Personalization Goals (Priority Order)
+
+1. **Custom Color Thresholds** — Discrete colors (green/yellow/red) with custom thresholds
+2. **Compact Display** — Use minimal pixels on the menu bar
+3. **Expand later** — Notification alerts, history chart, GPU... (not needed immediately)
+
+---
+
+## Key Files Reference
+
+| Target | File to Modify | Important Lines |
 |---|---|---|
-| Màu sắc indicators | `StatusBarView.swift` | `colorForUsage()`, `colorForTemperature()` |
-| Thêm settings menu | `AppDelegate.swift` | `showMenu()` ~L91 |
-| Thu thập data mới | `StatsEngine.swift` | Thêm `fetchXxxStats()` |
-| Layout menu bar | `StatusBarView.swift` | `draw()` ~L172, section widths |
+| Indicator colors | `StatusBarView.swift` | `colorForUsage()`, `colorForTemperature()` |
+| Add settings menu | `AppDelegate.swift` | `showMenu()` ~L91 |
+| Collect new data | `StatsEngine.swift` | Add `fetchXxxStats()` |
+| Menu bar layout | `StatusBarView.swift` | `draw()` ~L172, section widths |
 | Build configuration | `build.sh` | SDK path, flags |
 
 ---
 
-## 📚 Skills Index
+## Skills Index
 
-| Skill | Khi nào dùng |
+| Skill | When to use |
 |---|---|
-| [`feature-planning-workflow`](.agent/skills/feature-planning-workflow/SKILL.md) | Bắt đầu bất kỳ feature nào |
-| [`git-workflow`](.agent/skills/git-workflow/SKILL.md) | Branch, commit, merge |
-| [`swift-menubar-basics`](.agent/skills/swift-menubar-basics/SKILL.md) | Hỏi về NSColor, UserDefaults, AppKit... |
-| [`custom-threshold-feature`](.agent/skills/custom-threshold-feature/SKILL.md) | Implement warn/critical color levels |
-| [`compact-display`](.agent/skills/compact-display/SKILL.md) | Implement compact/minimal mode |
-| [`debug-and-fix`](.agent/skills/debug-and-fix/SKILL.md) | Khi có lỗi build hoặc runtime |
+| `feature-planning-workflow` | Starting any feature |
+| `git-workflow` | Branch, commit, merge |
+| `swift-menubar-basics` | Questions about NSColor, UserDefaults, AppKit... |
+| `custom-threshold-feature` | Implement warn/critical color levels |
+| `compact-display` | Implement compact/minimal mode |
+| `debug-and-fix` | Build errors or runtime crashes |
 
 ---
 
-## 🐛 Known Issues
+## Known Issues
 
-- **SDK mismatch**: Đã fix — hardcode SDK path trong `build.sh`
-- **Top Processes dùng subprocess**: Acceptable — chỉ chạy khi mở menu
-- **Network chỉ đếm "en" interfaces**: By design — VPN/utun không tính
+- **SDK mismatch**: Fixed — hardcoded SDK path in `build.sh`
+- **Top Processes uses subprocess**: Acceptable — only runs when opening menu
+- **Network only counts "en" interfaces**: By design — VPN/utun not counted
