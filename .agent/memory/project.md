@@ -41,9 +41,9 @@
 - [x] Discrete 4-level colors (Green/Yellow/Orange/Red)
 - [x] Enhanced Dropdown Menu (system summary, progress bars)
 - [x] Network Display Unit Setting
+- [x] Threshold Settings UI
 
 ### 🚧 In Progress
-- [ ] Threshold Settings UI
 - [ ] Compact display mode
 - [ ] (Future) Notification alerts
 - [ ] (Future) History sparkline chart
