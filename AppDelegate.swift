@@ -81,6 +81,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             tempUnit: tempUnit,
             memGB: currentMemStats.usedGB,
             memPercent: currentMemStats.usedPercent,
+            pressureLevel: currentMemStats.pressureLevel,
             uploadBytesPerSec: currentNetStats.uploadBytesPerSec,
             downloadBytesPerSec: currentNetStats.downloadBytesPerSec
         )
@@ -95,7 +96,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.autoenablesItems = false
 
         // --- About Header ---
-        let versionStr = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        let versionStr = BUILD_VERSION
         let versionItem = NSMenuItem(title: "MeMo v\(versionStr)", action: nil, keyEquivalent: "")
         versionItem.isEnabled = false
         versionItem.attributedTitle = NSAttributedString(string: "MeMo v\(versionStr)", attributes: [
@@ -129,13 +130,14 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         customViews.append((ramItem, { [weak self] width in 
             guard let self = self else { return (NSView(), {}) }
             let valStr = String(format: "%.1f/%.0f GB", self.currentMemStats.usedGB, self.currentMemStats.totalGB)
-            let (view, updateBlock) = Self.progressBarRow(label: "RAM", percent: self.currentMemStats.usedPercent, valueText: valStr, prefix: "mem", width: width)
+            let (view, updateBlock) = Self.progressBarRow(label: "RAM", percent: self.currentMemStats.usedPercent, valueText: valStr, prefix: "mem", width: width, pressureLevel: self.currentMemStats.pressureLevel)
             let updater = { [weak self, weak view] in
                 guard let self = self, let view = view else { return }
                 let pct = self.currentMemStats.usedPercent
+                let pressure = self.currentMemStats.pressureLevel
                 let newStr = String(format: "%.1f/%.0f GB", self.currentMemStats.usedGB, self.currentMemStats.totalGB)
                 let isDark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                updateBlock(pct, newStr, colorForUsage(pct, isDark: isDark, metricPrefix: "mem"))
+                updateBlock(pct, newStr, colorForUsage(pct, isDark: isDark, metricPrefix: "mem", pressureLevel: pressure))
             }
             return (view, updater)
         }))
@@ -635,7 +637,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return (container, updater)
     }
 
-    private static func progressBarRow(label: String, percent: Double, valueText: String, prefix: String, width: CGFloat) -> (NSView, (Double, String, NSColor) -> Void) {
+    private static func progressBarRow(label: String, percent: Double, valueText: String, prefix: String, width: CGFloat, pressureLevel: Int = 0) -> (NSView, (Double, String, NSColor) -> Void) {
         let leftInset: CGFloat = 21
         let rightInset: CGFloat = 21
         let font = NSFont.menuFont(ofSize: 0)
@@ -663,7 +665,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         barView.autoresizingMask = [.width]
         
         let isDark = container.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        barView.fillColor = colorForUsage(percent, isDark: isDark, metricPrefix: prefix)
+        barView.fillColor = colorForUsage(percent, isDark: isDark, metricPrefix: prefix, pressureLevel: pressureLevel)
         
         container.addSubview(barView)
         

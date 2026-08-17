@@ -69,6 +69,21 @@
 
 ---
 
-## Session 3 - [Date]: [Feature Name]
+## Session 3 - 2026-08-17: Dynamic SMC, Memory Pressure & Network Refinements
 
-*[AI will fill this out after each commit]*
+### Concepts Learned
+
+**Dynamic SMC Key Discovery**
+- Using `SMCKeys.readIndex` and `SMCKeys.kernelIndex` to iterate over all SMC keys using key index.
+- Read `#KEY` to discover total count, dynamically matching prefix `T` (temperature) rather than maintaining static tables per Apple Silicon generation.
+
+**System Memory Pressure via Sysctl**
+- `sysctlbyname("kern.memorystatus_vm_pressure_level", &pressureLevel, &size, nil, 0)` returns macOS system memory pressure (1: Normal, 2: Warning, 4: Critical).
+- App memory calculation: `active + speculative - purgeable` better aligns with Activity Monitor than raw active memory.
+
+**Dynamic Primary Network Interface**
+- Querying `SCDynamicStore` at `State:/Network/Global/IPv4` to resolve `PrimaryInterface` (e.g. `en0`, `en1`).
+- Filtering traffic by primary interface avoids counting inactive interfaces or local bridges.
+
+**CLI Argument Parsing**
+- `CommandLine.arguments.contains("--debug")` provides lightweight runtime flag handling without extra dependencies.

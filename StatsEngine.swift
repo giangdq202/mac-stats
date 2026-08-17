@@ -1,6 +1,7 @@
 import Foundation
 import MachO
 import IOKit
+import SystemConfiguration
 
 public struct TempCluster {
     public let name: String
@@ -24,6 +25,7 @@ public struct MemoryStats {
     public var wiredBytes: UInt64 = 0
     public var compressedBytes: UInt64 = 0
     public var freeBytes: UInt64 = 0
+    public var pressureLevel: Int = 0 // 1: Normal, 2: Warning, 4: Critical
 
     public var usedGB: Double {
         return Double(usedBytes) / 1_073_741_824.0
@@ -68,6 +70,15 @@ public class StatsEngine {
     private var prevNetTime: CFAbsoluteTime = 0
     private var cachedActiveInterface: String = "en0"
     
+    private func getPrimaryInterface() -> String {
+        if let dynamicStore = SCDynamicStoreCreate(nil, "MeMo" as CFString, nil, nil),
+           let ipv4 = SCDynamicStoreCopyValue(dynamicStore, "State:/Network/Global/IPv4" as CFString) as? [String: Any],
+           let primaryInterface = ipv4["PrimaryInterface"] as? String {
+            return primaryInterface
+        }
+        return "en0"
+    }
+    
     // Active temperature keys grouped by cluster (e.g. CPU, GPU)
     private var activeTempKeys: [String: [String]] = [:]
 
@@ -93,47 +104,22 @@ public class StatsEngine {
             "Other CPU": []
         ]
 
-        let pCoreKeys = [
-            "Tf04", "Tf09", "Tf0A", "Tf0B", "Tf0D", "Tf0E", "Tf44", "Tf49", "Tf4A", "Tf4B", "Tf4D", "Tf4E",
-            "Tp01", "Tp05", "Tp09", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b", "Tp0e", "Tp0T", "Tp0V", "Tp0Y",
-            "Tp1h", "Tp1t", "Tp1p", "Tp1l",
-            "Tp2a", "Tp2b", "Tp2x", "Tp2z",
-            "Tp3a", "Tp3b", "Tp3x", "Tp3z",
-            "Tp4a", "Tp4b", "Tp4x", "Tp4z",
-            "Tp5a", "Tp5b", "Tp5x", "Tp5z",
-            "Tp7a", "Tp7b", "Tp7x", "Tp7z",
-            "Tp8a", "Tp8b", "Tp8x", "Tp8z",
-            "Tp9a", "Tp9b", "Tp9x", "Tp9z"
-        ]
+        let allTempKeys = smc.getAllTemperatureKeys().filter(isActive)
         
-        let eCoreKeys = [
-            "Te05", "Te0L", "Te0P", "Te0S", "Te09", "Te0H", "Te0a", "Te0b", "Te0x", "Te0z",
-            "Te3a", "Te3b", "Te3x", "Te3z"
-        ]
-
-        let otherCpuKeys = [
-            "Tc0a", "Tc0b", "Tc0x", "Tc0z",
-            "Tc1a", "Tc1b", "Tc1x", "Tc1z",
-            "Tc2a", "Tc2b", "Tc2x", "Tc2z",
-            "Tc3a", "Tc3b", "Tc3x", "Tc3z",
-            "Tc4a", "Tc4b", "Tc4x", "Tc4z",
-            "Tc5a", "Tc5b", "Tc5x", "Tc5z",
-            "Tc6a", "Tc6b", "Tc6x", "Tc6z",
-            "Tc7a", "Tc7b", "Tc7x", "Tc7z",
-            "Tc8a", "Tc8b", "Tc8x", "Tc8z",
-            "Tc9a", "Tc9b", "Tc9x", "Tc9z",
-            "Tcaa", "Tcab", "Tcax", "Tcaz"
-        ]
-
-        let gpuKeys = [
-            "Tg05", "Tg0D", "Tg0L", "Tg0P", "Tg0S", "Tg0j", "Tg1x", "Tg2x", "Tg3x", "Tg4x",
-            "TG0D", "TG0H", "TG0P" // keep a few common just in case
-        ]
-
-        groups["P-Cores"] = pCoreKeys.filter(isActive)
-        groups["E-Cores"] = eCoreKeys.filter(isActive)
-        groups["Other CPU"] = otherCpuKeys.filter(isActive)
-        groups["GPU"] = gpuKeys.filter(isActive)
+        for key in allTempKeys {
+            if key.hasPrefix("Tp") {
+                groups["P-Cores"]?.append(key)
+            } else if key.hasPrefix("Te") {
+                groups["E-Cores"]?.append(key)
+            } else if key.hasPrefix("Tg") || key.hasPrefix("TG") {
+                groups["GPU"]?.append(key)
+            } else if key.hasPrefix("Tc") || key.hasPrefix("Tf") || key.hasPrefix("Tm") || key.hasPrefix("Ts") || key.hasPrefix("Ta") || key.hasPrefix("Th") || key.hasPrefix("Tb") || key.hasPrefix("TC") || key.hasPrefix("TH") || key.hasPrefix("TM") || key.hasPrefix("TP") || key.hasPrefix("TS") || key.hasPrefix("TA") || key.hasPrefix("TB") {
+                // To filter out some noise keys that might just be battery / random system sensors, 
+                // we can optionally put the rest in "Other CPU" if they look like CPU sensors.
+                // For simplicity, any other 'T' key that has a valid reading can go to Other CPU.
+                groups["Other CPU"]?.append(key)
+            }
+        }
         
         // Remove empty groups
         return groups.filter { !$0.value.isEmpty }
@@ -232,6 +218,17 @@ public class StatsEngine {
             }
         }
         
+        if isDebugMode {
+            let log = "[DEBUG CPU] Usage: \(String(format: "%.1f", stats.usagePercent))% | Cores: \(stats.coreCount) | Temp: \(String(format: "%.1f", stats.temperature))°C | Clusters: \(stats.tempClusters.count)\n"
+            if let handle = FileHandle(forWritingAtPath: "/tmp/memo_debug.log") {
+                handle.seekToEndOfFile()
+                handle.write(log.data(using: .utf8)!)
+                handle.closeFile()
+            } else {
+                try? log.write(toFile: "/tmp/memo_debug.log", atomically: true, encoding: .utf8)
+            }
+        }
+        
         return stats
     }
 
@@ -259,11 +256,38 @@ public class StatsEngine {
         let compressed = UInt64(stats64.compressor_page_count) * page
         let free = UInt64(stats64.free_count) * page
         
+        let speculative = UInt64(stats64.speculative_count) * page
+        let purgeable = UInt64(stats64.purgeable_count) * page
+        
+        let appMemory = active + speculative > purgeable ? (active + speculative - purgeable) : 0
+        
         stats.activeBytes = active
         stats.wiredBytes = wired
         stats.compressedBytes = compressed
         stats.freeBytes = free
-        stats.usedBytes = active + wired + compressed
+        stats.usedBytes = appMemory + wired + compressed
+        
+        var pressureLevel: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        if sysctlbyname("kern.memorystatus_vm_pressure_level", &pressureLevel, &size, nil, 0) == 0 {
+            stats.pressureLevel = Int(pressureLevel)
+        }
+        
+        if isDebugMode {
+            let activeGB = Double(active) / 1_073_741_824.0
+            let wiredGB = Double(wired) / 1_073_741_824.0
+            let compressedGB = Double(compressed) / 1_073_741_824.0
+            let speculativeGB = Double(speculative) / 1_073_741_824.0
+            let purgeableGB = Double(purgeable) / 1_073_741_824.0
+            let log = "[DEBUG RAM] Used: \(String(format: "%.1f", stats.usedGB))GB / \(String(format: "%.1f", stats.totalGB))GB | Pressure: \(stats.pressureLevel) | active:\(String(format: "%.1f", activeGB)) wired:\(String(format: "%.1f", wiredGB)) compressed:\(String(format: "%.1f", compressedGB)) speculative:\(String(format: "%.1f", speculativeGB)) purgeable:\(String(format: "%.1f", purgeableGB))\n"
+            if let handle = FileHandle(forWritingAtPath: "/tmp/memo_debug.log") {
+                handle.seekToEndOfFile()
+                handle.write(log.data(using: .utf8)!)
+                handle.closeFile()
+            } else {
+                try? log.write(toFile: "/tmp/memo_debug.log", atomically: true, encoding: .utf8)
+            }
+        }
         
         return stats
     }
@@ -282,6 +306,8 @@ public class StatsEngine {
         var currentBytesRecv: UInt64 = 0
         var foundEnInterface = false
         
+        let primaryInterface = getPrimaryInterface()
+        
         var ptr: UnsafeMutablePointer<ifaddrs>? = firstAddr
         while let curr = ptr {
             let flags = Int32(curr.pointee.ifa_flags)
@@ -292,8 +318,8 @@ public class StatsEngine {
             if isUp && isRunning && !isLoopback {
                 if curr.pointee.ifa_addr.pointee.sa_family == UInt8(AF_LINK) {
                     if let namePtr = curr.pointee.ifa_name {
-                        // Zero-alloc check: compare raw bytes for "en" prefix (0x65='e', 0x6e='n')
-                        if namePtr.pointee == 0x65 && namePtr.advanced(by: 1).pointee == 0x6e {
+                        let nameStr = String(cString: namePtr)
+                        if nameStr == primaryInterface {
                             if let data = curr.pointee.ifa_data {
                                 let ifData = data.assumingMemoryBound(to: if_data.self)
                                 currentBytesRecv += UInt64(ifData.pointee.ifi_ibytes)
@@ -301,7 +327,6 @@ public class StatsEngine {
                                 
                                 if !foundEnInterface {
                                     foundEnInterface = true
-                                    let nameStr = String(cString: namePtr)
                                     if nameStr != cachedActiveInterface {
                                         cachedActiveInterface = nameStr
                                     }
@@ -333,12 +358,28 @@ public class StatsEngine {
                 
                 stats.uploadBytesPerSec = Double(sentDelta) / dt
                 stats.downloadBytesPerSec = Double(recvDelta) / dt
+                
+                // Spike filter: drop impossibly large speeds (e.g. > 100 Gbps or 12.5 GB/s)
+                let maxReasonable: Double = 12_500_000_000
+                if stats.uploadBytesPerSec > maxReasonable { stats.uploadBytesPerSec = 0 }
+                if stats.downloadBytesPerSec > maxReasonable { stats.downloadBytesPerSec = 0 }
             }
         }
         
         self.prevNetBytesSent = currentBytesSent
         self.prevNetBytesRecv = currentBytesRecv
         self.prevNetTime = now
+
+        if isDebugMode {
+            let log = "[DEBUG NET] Interface: \(stats.activeInterface) | Up: \(String(format: "%.0f", stats.uploadBytesPerSec)) B/s | Down: \(String(format: "%.0f", stats.downloadBytesPerSec)) B/s\n"
+            if let handle = FileHandle(forWritingAtPath: "/tmp/memo_debug.log") {
+                handle.seekToEndOfFile()
+                handle.write(log.data(using: .utf8)!)
+                handle.closeFile()
+            } else {
+                try? log.write(toFile: "/tmp/memo_debug.log", atomically: true, encoding: .utf8)
+            }
+        }
 
         return stats
     }

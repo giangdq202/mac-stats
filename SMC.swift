@@ -179,6 +179,48 @@ public class SMC {
         return nil
     }
     
+    public func getKeyCount() -> UInt32 {
+        guard conn != 0 else { return 0 }
+        var val = SMCVal_t("#KEY")
+        let result = read(&val)
+        guard result == kIOReturnSuccess else {
+            return 0
+        }
+        if val.dataSize == 4, val.dataType == "ui32" {
+            return UInt32(bytes: (val.bytes[0], val.bytes[1], val.bytes[2], val.bytes[3]))
+        }
+        return 0
+    }
+    
+    public func getKeyAtIndex(_ index: UInt32) -> String? {
+        guard conn != 0 else { return nil }
+        var input = SMCKeyData_t()
+        var output = SMCKeyData_t()
+        
+        input.data8 = SMCKeys.readIndex.rawValue
+        input.data32 = index
+        
+        let result = call(SMCKeys.kernelIndex.rawValue, input: &input, output: &output)
+        if result == kIOReturnSuccess {
+            return output.key.toString()
+        }
+        return nil
+    }
+    
+    public func getAllTemperatureKeys() -> [String] {
+        let count = getKeyCount()
+        var tempKeys: [String] = []
+        for i in 0..<count {
+            if let key = getKeyAtIndex(i) {
+                // T means Temperature in SMC
+                if key.hasPrefix("T") {
+                    tempKeys.append(key)
+                }
+            }
+        }
+        return tempKeys
+    }
+    
     private func read(_ value: UnsafeMutablePointer<SMCVal_t>) -> kern_return_t {
         var result: kern_return_t = 0
         var input = SMCKeyData_t()

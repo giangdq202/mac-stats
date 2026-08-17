@@ -7,6 +7,13 @@
 - **Solution**: Hardcode `SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"` in `build.sh`
 - **Reason**: Swift 6.2.4 (swiftlang-6.2.4.1.4) requires SDK matching the compiler version
 
+### 2026-08-17: Dynamic SMC, Memory Pressure & Network Refinements
+- **Dynamic SMC Keys**: Read total key count (`#KEY`) and index scan for temperature sensors instead of hardcoding key lists.
+- **Memory Pressure**: Track `kern.memorystatus_vm_pressure_level` via sysctl; compute active app memory taking into account speculative & purgeable pages.
+- **Primary Interface**: Detect primary route using `SCDynamicStore` to prevent multi-interface summation discrepancies, add spike filter.
+- **Build Timestamp**: Auto-generate build timestamp in `Version.swift` during build step.
+- **Debug Mode**: Added `--debug` command-line flag logging to `/tmp/memo_debug.log`.
+
 ### 2026-08-08: Split CI/CD Pipelines
 - **CI Workflow**: Created `ci.yml` to automatically build project on `push` and `pull_request` to `main`.
 - **CD Workflow**: Modified `release.yml` to only trigger on `tags` (`v*`) and manual `workflow_dispatch`. Prevents release spam on minor commits.
