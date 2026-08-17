@@ -52,12 +52,16 @@ public func levelForValue(_ value: Double, warn: Double, high: Double, crit: Dou
     return .normal
 }
 
-public func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String) -> NSColor {
+public func colorForUsage(_ percent: Double, isDark: Bool, metricPrefix: String, pressureLevel: Int = 0) -> NSColor {
     let warn: Double
     let high: Double
     let crit: Double
     
     if metricPrefix == "mem" {
+        // If system reports high memory pressure, override usage-based color
+        if pressureLevel >= 4 { return discreteColor(level: .critical, isDark: isDark) }
+        if pressureLevel >= 2 { return discreteColor(level: .warning, isDark: isDark) }
+        
         warn = 65.0; high = 80.0; crit = 90.0
     } else {
         // CPU
@@ -174,6 +178,7 @@ public class UnifiedStatsView: BaseStatsView {
     private var _tempUnit: String = "C"
     private var _memGB: Double = -1
     private var _memPercent: Double = -1
+    private var _pressureLevel: Int = 0
     private var _uploadBPS: Double = -1
     private var _downloadBPS: Double = -1
 
@@ -202,6 +207,7 @@ public class UnifiedStatsView: BaseStatsView {
     private var lastCpuPct: Double = -1
     private var lastMemGB: Double = -1
     private var lastMemPct: Double = -1
+    private var lastPressure: Int = -1
     private var lastTempC: Double = -1
     private var lastTempUnit: String = ""
     private var lastMode: NetworkUnitMode = .auto
@@ -224,7 +230,7 @@ public class UnifiedStatsView: BaseStatsView {
         self.layerContentsRedrawPolicy = .onSetNeedsDisplay
     }
 
-    public func updateValues(cpuPercent: Double, cpuTemperature: Double, tempUnit: String, memGB: Double, memPercent: Double,
+    public func updateValues(cpuPercent: Double, cpuTemperature: Double, tempUnit: String, memGB: Double, memPercent: Double, pressureLevel: Int,
                              uploadBytesPerSec: Double, downloadBytesPerSec: Double) {
         var changed = false
         if _cpuPercent != cpuPercent { _cpuPercent = cpuPercent; changed = true }
@@ -232,6 +238,7 @@ public class UnifiedStatsView: BaseStatsView {
         if _tempUnit != tempUnit { _tempUnit = tempUnit; changed = true }
         if _memGB != memGB { _memGB = memGB; changed = true }
         if _memPercent != memPercent { _memPercent = memPercent; changed = true }
+        if _pressureLevel != pressureLevel { _pressureLevel = pressureLevel; changed = true }
         if _uploadBPS != uploadBytesPerSec { _uploadBPS = uploadBytesPerSec; changed = true }
         if _downloadBPS != downloadBytesPerSec { _downloadBPS = downloadBytesPerSec; changed = true }
         if changed { needsDisplay = true }
@@ -265,7 +272,7 @@ public class UnifiedStatsView: BaseStatsView {
             cachedIsDark = isDark
             lastMode = mode
             cachedUpLine = nil; cachedDownLine = nil; cachedCpuLine = nil; cachedMemLine = nil; cachedTempLine = nil; cachedTempUnitLine = nil
-            lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastMemPct = -1; lastTempC = -1; lastTempUnit = ""
+            lastUpBPS = -1; lastDownBPS = -1; lastCpuPct = -1; lastMemGB = -1; lastMemPct = -1; lastPressure = -1; lastTempC = -1; lastTempUnit = ""
         }
 
         let textColor = isDark ? NSColor.white : NSColor.black
@@ -319,11 +326,12 @@ public class UnifiedStatsView: BaseStatsView {
         cachedCpuLine!.draw(in: CGRect(x: currentX, y: line1Y, width: cpuMemW, height: lineH))
 
         // RAM
-        if cachedMemLine == nil || _memGB != lastMemGB || _memPercent != lastMemPct {
+        if cachedMemLine == nil || _memGB != lastMemGB || _memPercent != lastMemPct || _pressureLevel != lastPressure {
             lastMemGB = _memGB
             lastMemPct = _memPercent
+            lastPressure = _pressureLevel
             let memKey = String(format: "%.1f", _memGB)
-            let memColor = colorForUsage(_memPercent, isDark: isDark, metricPrefix: "mem")
+            let memColor = colorForUsage(_memPercent, isDark: isDark, metricPrefix: "mem", pressureLevel: _pressureLevel)
             cachedMemLine = buildLine(val: memKey, unit: "G", color: memColor, dimAlpha: dimAlpha,
                                        valFont: font, uFont: cpuMemUnitFont)
         }

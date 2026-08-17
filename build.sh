@@ -17,7 +17,11 @@ echo "=== Building ${APP_NAME} (Optimized, Universal) ==="
 echo "[1/4] Generating AppIcon.icns..."
 python3 generate_icon.py || echo "Warning: Icon generation failed, continuing..."
 
-SOURCES=(SMC.swift StatsEngine.swift StatusBarView.swift AppDelegate.swift main.swift)
+# Generate Version.swift with current build time
+BUILD_TIME=$(date "+%y%m%d.%H%M")
+echo "let BUILD_VERSION = \"1.0.0 (${BUILD_TIME})\"" > Version.swift
+
+SOURCES=(SMC.swift StatsEngine.swift StatusBarView.swift AppDelegate.swift main.swift Version.swift)
 if [ -d "/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk" ]; then
     SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
 else
